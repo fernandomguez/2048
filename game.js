@@ -1,10 +1,9 @@
 // ============================================================
 //  2048 — game.js
-//  Estado + lógica de movimiento/fusión + fin de partida + récord
+//  Estado + movimiento/fusión + fin de partida + récord + power-ups
 // ============================================================
 
 // --- ESTADO ---
-// La verdad del juego. 0 = celda vacía. Todo lo demás se deriva de aquí.
 let board = [
   [0, 0, 0, 0],
   [0, 0, 0, 0],
@@ -13,9 +12,15 @@ let board = [
 ];
 
 let score = 0;
-let best = leerRecord();        // récord de partidas anteriores
-let victoriaAvisada = false;    // para no repetir el aviso de victoria cada jugada
-let ultimaFichaNueva = null;    // [fila, col] de la última ficha generada (para animar)
+let best = leerRecord();
+let victoriaAvisada = false;
+let ultimaFichaNueva = null;
+
+// Power-ups
+let historial = [];
+let deshacerRestantes = 3;
+let modoBomba = false;
+let bombasRestantes = 1;
 
 // Referencias al DOM
 const boardEl   = document.getElementById("board");
@@ -25,9 +30,12 @@ const overlayEl = document.getElementById("overlay");
 const overlayTitleEl   = document.getElementById("overlay-title");
 const overlayTextEl    = document.getElementById("overlay-text");
 const overlayActionsEl = document.getElementById("overlay-actions");
+const undoBtn   = document.getElementById("undo");
+const bombBtn   = document.getElementById("bomb");
+const undoCount = document.getElementById("undo-count");
+const bombCount = document.getElementById("bomb-count");
 
 // --- RENDER ---
-// Borra el tablero y lo redibuja LEYENDO desde 'board'. Refleja el estado; no decide nada.
 function render() {
   boardEl.innerHTML = "";
   for (let fila = 0; fila < 4; fila++) {
@@ -37,9 +45,8 @@ function render() {
       cell.className = "cell";
       if (valor !== 0) {
         cell.textContent = valor;
-        cell.dataset.value = valor;                 // colorea por CSS según el valor
-        cell.classList.add("len" + String(valor).length); // ajusta tamaño de fuente
-        // Anima solo la ficha recién aparecida, no todo el tablero.
+        cell.dataset.value = valor;
+        cell.classList.add("len" + String(valor).length);
         if (ultimaFichaNueva && ultimaFichaNueva[0] === fila && ultimaFichaNueva[1] === col) {
           cell.classList.add("nueva");
         }
@@ -51,7 +58,6 @@ function render() {
 }
 
 // --- SPAWN ---
-// Coloca una ficha nueva (2 o 4) en una celda vacía al azar y recuerda su posición.
 function spawn() {
   const vacias = [];
   for (let fila = 0; fila < 4; fila++) {
@@ -121,9 +127,11 @@ function sonIguales(a, b) {
 
 // --- MOVIMIENTO COMPLETO ---
 function mover(direccion) {
-  if (!overlayEl.hidden) return; // si hay overlay (fin/victoria), no se mueve
+  if (!overlayEl.hidden) return;
+  if (modoBomba) return;
 
   const previo = copiar(board);
+  const scorePrevio = score;
 
   if (direccion === "left") {
     board = moverMatrizIzquierda(board);
@@ -144,14 +152,15 @@ function mover(direccion) {
   }
 
   if (!sonIguales(previo, board)) {
+    historial.push({ board: previo, score: scorePrevio });
     spawn();
   } else {
-    ultimaFichaNueva = null; // no hubo cambio: nada que animar
+    ultimaFichaNueva = null;
   }
 
   render();
+  actualizarBotonDeshacer();
 
-  // Fin de partida
   if (!victoriaAvisada && hayVictoria()) {
     victoriaAvisada = true;
     mostrarVictoria();
@@ -172,8 +181,8 @@ function hayFusionPosible() {
   for (let fila = 0; fila < 4; fila++) {
     for (let col = 0; col < 4; col++) {
       const valor = board[fila][col];
-      if (col < 3 && valor === board[fila][col + 1]) return true; // vecina derecha
-      if (fila < 3 && valor === board[fila + 1][col]) return true; // vecina abajo
+      if (col < 3 && valor === board[fila][col + 1]) return true;
+      if (fila < 3 && valor === board[fila + 1][col]) return true;
     }
   }
   return false;
@@ -190,9 +199,7 @@ function hayVictoria() {
   return false;
 }
 
-// --- PERSISTENCIA DEL RÉCORD ---
-// Guardamos un OBJETO, no un número suelto: así mañana se le añaden campos
-// (fecha, última partida...) y viaja tal cual a una API sin reescribir nada.
+// --- PERSISTENCIA DEL RÉCORD (objeto, preparado para una futura API) ---
 function guardarRecord(valor) {
   try {
     localStorage.setItem("stats2048", JSON.stringify({ record: valor }));
@@ -218,6 +225,60 @@ function actualizarMarcador() {
   scoreEl.textContent = score;
   bestEl.textContent = best;
 }
+
+// --- POWER-UP: DESHACER (pila de estados) ---
+function deshacer() {
+  if (historial.length === 0 || deshacerRestantes <= 0) return;
+  const anterior = historial.pop();
+  board = anterior.board;
+  score = anterior.score;
+  deshacerRestantes--;
+  ultimaFichaNueva = null;
+  render();
+  actualizarBotonDeshacer();
+}
+
+function actualizarBotonDeshacer() {
+  undoCount.textContent = deshacerRestantes;
+  undoBtn.disabled = deshacerRestantes <= 0 || historial.length === 0;
+}
+
+// --- POWER-UP: BOMBA ---
+function toggleBomba() {
+  if (bombasRestantes <= 0) return;
+  modoBomba = !modoBomba;
+  boardEl.classList.toggle("modo-bomba", modoBomba);
+  actualizarBotonBomba();
+}
+
+function actualizarBotonBomba() {
+  bombCount.textContent = bombasRestantes;
+  bombBtn.classList.toggle("armed", modoBomba);
+  bombBtn.disabled = bombasRestantes <= 0;
+}
+
+boardEl.addEventListener("click", (evento) => {
+  if (!modoBomba) return;
+  const celdas = [...boardEl.children];
+  const celda = evento.target.closest(".cell");
+  const indice = celdas.indexOf(celda);
+  if (indice === -1) return;
+  const fila = Math.floor(indice / 4);
+  const col = indice % 4;
+  if (board[fila][col] === 0) { // celda vacía: cancela el modo sin gastar bomba
+    modoBomba = false;
+    boardEl.classList.remove("modo-bomba");
+    actualizarBotonBomba();
+    return;
+  }
+  board[fila][col] = 0;
+  bombasRestantes--;
+  modoBomba = false;
+  boardEl.classList.remove("modo-bomba");
+  ultimaFichaNueva = null;
+  render();
+  actualizarBotonBomba();
+});
 
 // --- OVERLAY (fin / victoria) ---
 function mostrarOverlay(titulo, texto, botones) {
@@ -268,10 +329,17 @@ function nuevaPartida() {
   score = 0;
   victoriaAvisada = false;
   ultimaFichaNueva = null;
+  historial = [];
+  deshacerRestantes = 3;
+  modoBomba = false;
+  bombasRestantes = 1;
+  boardEl.classList.remove("modo-bomba");
   ocultarOverlay();
   spawn();
   spawn();
   render();
+  actualizarBotonDeshacer();
+  actualizarBotonBomba();
 }
 
 // --- ENTRADA: TECLADO ---
@@ -309,10 +377,14 @@ boardEl.addEventListener("touchend", (evento) => {
   }
 });
 
-// --- BOTÓN NUEVA PARTIDA ---
+// --- BOTONES ---
 document.getElementById("new-game").addEventListener("click", nuevaPartida);
+undoBtn.addEventListener("click", deshacer);
+bombBtn.addEventListener("click", toggleBomba);
 
 // --- INICIO ---
 spawn();
 spawn();
 render();
+actualizarBotonDeshacer();
+actualizarBotonBomba();
