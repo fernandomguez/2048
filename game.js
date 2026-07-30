@@ -1,3 +1,8 @@
+// ============================================================
+//  2048 — game.js
+//  Estado del juego + lógica de movimiento y fusión
+// ============================================================
+
 // --- ESTADO ---
 // La verdad del juego. 0 = celda vacía. Todo lo demás se deriva de aquí.
 let board = [
@@ -7,6 +12,7 @@ let board = [
   [0, 0, 0, 0],
 ];
 
+let score = 0;
 const boardEl = document.getElementById("board");
 
 // --- RENDER ---
@@ -27,9 +33,10 @@ function render() {
     }
   }
 }
+
+// --- SPAWN ---
 // Coloca una ficha nueva (2 o 4) en una celda vacía elegida al azar.
 function spawn() {
-  // 1. Recolectar todas las celdas vacías como pares [fila, col].
   const vacias = [];
   for (let fila = 0; fila < 4; fila++) {
     for (let col = 0; col < 4; col++) {
@@ -38,17 +45,108 @@ function spawn() {
       }
     }
   }
-
-  // 2. Si no hay ninguna vacía, no hacemos nada (esto importará en el hito 7).
-  if (vacias.length === 0) return;
-
-  // 3. Elegir una celda vacía al azar.
+  if (vacias.length === 0) return; // tablero lleno: no hace nada
   const [fila, col] = vacias[Math.floor(Math.random() * vacias.length)];
-
-  // 4. 90% un 2, 10% un 4.
-  board[fila][col] = Math.random() < 0.9 ? 2 : 4;
+  board[fila][col] = Math.random() < 0.9 ? 2 : 4; // 90% un 2, 10% un 4
 }
-// Inicio de partida: dos fichas y a dibujar.
+
+// --- LÓGICA DE UNA FILA ---
+// Comprime: manda los no-ceros a la izquierda, ceros al final.
+function comprimir(fila) {
+  const sinCeros = fila.filter(v => v !== 0);
+  while (sinCeros.length < 4) {
+    sinCeros.push(0);
+  }
+  return sinCeros;
+}
+
+// Fusiona adyacentes iguales (una sola vez cada una) en una fila YA comprimida.
+function fusionar(fila) {
+  for (let i = 0; i < 3; i++) {
+    if (fila[i] !== 0 && fila[i] === fila[i + 1]) {
+      fila[i] = fila[i] * 2;
+      fila[i + 1] = 0;
+      score += fila[i];
+      i++; // salta la siguiente: evita fusión en cadena
+    }
+  }
+  return fila;
+}
+
+// Mueve una fila a la izquierda: comprimir -> fusionar -> comprimir.
+function moverFilaIzquierda(fila) {
+  fila = comprimir(fila);
+  fila = fusionar(fila);
+  fila = comprimir(fila);
+  return fila;
+}
+
+// --- TRANSFORMACIONES DE MATRIZ ---
+// Invierte cada fila (espejo horizontal). Para el movimiento a la derecha.
+function invertirFilas(matriz) {
+  return matriz.map(fila => [...fila].reverse());
+}
+
+// Transpone la matriz (filas <-> columnas). Para los movimientos verticales.
+function transponer(matriz) {
+  const resultado = [];
+  for (let col = 0; col < 4; col++) {
+    const nuevaFila = [];
+    for (let fila = 0; fila < 4; fila++) {
+      nuevaFila.push(matriz[fila][col]);
+    }
+    resultado.push(nuevaFila);
+  }
+  return resultado;
+}
+
+// Aplica moverFilaIzquierda a las 4 filas.
+function moverMatrizIzquierda(matriz) {
+  return matriz.map(fila => moverFilaIzquierda(fila));
+}
+
+// --- COPIA Y COMPARACIÓN ---
+// Copia profunda de una matriz 4x4 (clona también las filas internas).
+function copiar(matriz) {
+  return matriz.map(fila => [...fila]);
+}
+
+// ¿Dos matrices tienen el mismo contenido?
+function sonIguales(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+// --- MOVIMIENTO COMPLETO ---
+// Mueve todo el tablero en una dirección y genera ficha nueva SOLO si cambió algo.
+function mover(direccion) {
+  const previo = copiar(board); // foto del tablero antes de mover
+
+  if (direccion === "left") {
+    board = moverMatrizIzquierda(board);
+  } else if (direccion === "right") {
+    board = invertirFilas(board);
+    board = moverMatrizIzquierda(board);
+    board = invertirFilas(board);
+  } else if (direccion === "up") {
+    board = transponer(board);
+    board = moverMatrizIzquierda(board);
+    board = transponer(board);
+  } else if (direccion === "down") {
+    board = transponer(board);
+    board = invertirFilas(board);
+    board = moverMatrizIzquierda(board);
+    board = invertirFilas(board);
+    board = transponer(board);
+  }
+
+  if (!sonIguales(previo, board)) {
+    spawn();
+  }
+
+  render();
+}
+
+// --- INICIO DE PARTIDA ---
 spawn();
 spawn();
 render();
