@@ -191,6 +191,81 @@ boardEl.addEventListener("touchend", (evento) => {
   }
 });
 
+// --- FIN DE PARTIDA ---
+
+// ¿Queda alguna celda vacía?
+function hayVacias() {
+  for (let fila = 0; fila < 4; fila++) {
+    for (let col = 0; col < 4; col++) {
+      if (board[fila][col] === 0) return true;
+    }
+  }
+  return false;
+}
+
+// ¿Hay algún par de fichas adyacentes iguales (horizontal o vertical)?
+function hayFusionPosible() {
+  for (let fila = 0; fila < 4; fila++) {
+    for (let col = 0; col < 4; col++) {
+      const valor = board[fila][col];
+      // Vecina de la derecha: solo si no estamos en la última columna.
+      if (col < 3 && valor === board[fila][col + 1]) return true;
+      // Vecina de abajo: solo si no estamos en la última fila.
+      if (fila < 3 && valor === board[fila + 1][col]) return true;
+    }
+  }
+  return false;
+}
+
+// ¿Se acabó la partida? Solo si NO hay huecos Y NO hay fusiones posibles.
+function esGameOver() {
+  return !hayVacias() && !hayFusionPosible();
+}
+
+// ¿Alguien alcanzó 2048?
+function hayVictoria() {
+  for (let fila = 0; fila < 4; fila++) {
+    for (let col = 0; col < 4; col++) {
+      if (board[fila][col] === 2048) return true;
+    }
+  }
+  return false;
+}
+function mover(direccion) {
+  const previo = copiar(board);
+
+  if (direccion === "left") {
+    board = moverMatrizIzquierda(board);
+  } else if (direccion === "right") {
+    board = invertirFilas(board);
+    board = moverMatrizIzquierda(board);
+    board = invertirFilas(board);
+  } else if (direccion === "up") {
+    board = transponer(board);
+    board = moverMatrizIzquierda(board);
+    board = transponer(board);
+  } else if (direccion === "down") {
+    board = transponer(board);
+    board = invertirFilas(board);
+    board = moverMatrizIzquierda(board);
+    board = invertirFilas(board);
+    board = transponer(board);
+  }
+
+  if (!sonIguales(previo, board)) {
+    spawn();
+  }
+
+  render();
+
+  // Comprobación de fin de partida (provisional con alert; el aviso bonito va en el pulido)
+  if (hayVictoria()) {
+    alert("¡Has llegado a 2048! 🎉");
+  } else if (esGameOver()) {
+    alert("Game over — no quedan movimientos");
+  }
+}
+
 // --- INICIO DE PARTIDA ---
 spawn();
 spawn();
