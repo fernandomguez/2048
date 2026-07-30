@@ -162,6 +162,35 @@ document.addEventListener("keydown", (evento) => {
   }
 });
 
+// --- CONTROL TÁCTIL (SWIPE) ---
+let inicioX = 0;
+let inicioY = 0;
+
+boardEl.addEventListener("touchstart", (evento) => {
+  inicioX = evento.touches[0].clientX;
+  inicioY = evento.touches[0].clientY;
+});
+
+boardEl.addEventListener("touchend", (evento) => {
+  const finX = evento.changedTouches[0].clientX;
+  const finY = evento.changedTouches[0].clientY;
+
+  const deltaX = finX - inicioX; // desplazamiento horizontal
+  const deltaY = finY - inicioY; // desplazamiento vertical
+
+  const UMBRAL = 30; // mínimo de píxeles para considerarlo swipe (ignora toques)
+
+  // Si el gesto fue demasiado corto, no es un swipe: lo ignoramos.
+  if (Math.abs(deltaX) < UMBRAL && Math.abs(deltaY) < UMBRAL) return;
+
+  // ¿Se movió más en horizontal o en vertical? El eje dominante decide.
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    mover(deltaX > 0 ? "right" : "left");
+  } else {
+    mover(deltaY > 0 ? "down" : "up");
+  }
+});
+
 // --- INICIO DE PARTIDA ---
 spawn();
 spawn();
