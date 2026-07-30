@@ -146,6 +146,22 @@ function mover(direccion) {
   render();
 }
 
+// --- CONTROL POR TECLADO ---
+// Traduce cada flecha del teclado a una dirección y mueve el tablero.
+document.addEventListener("keydown", (evento) => {
+  const direccion = {
+    ArrowLeft: "left",
+    ArrowRight: "right",
+    ArrowUp: "up",
+    ArrowDown: "down",
+  }[evento.key];
+
+  if (direccion) {
+    evento.preventDefault(); // evita que las flechas hagan scroll en la página
+    mover(direccion);
+  }
+});
+
 // --- INICIO DE PARTIDA ---
 spawn();
 spawn();
