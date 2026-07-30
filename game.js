@@ -1,6 +1,6 @@
 // ============================================================
 //  2048 — game.js
-//  Estado del juego + lógica de movimiento y fusión
+//  Estado + lógica de movimiento/fusión + fin de partida + récord
 // ============================================================
 
 // --- ESTADO ---
@@ -13,11 +13,21 @@ let board = [
 ];
 
 let score = 0;
-const boardEl = document.getElementById("board");
+let best = leerRecord();        // récord de partidas anteriores
+let victoriaAvisada = false;    // para no repetir el aviso de victoria cada jugada
+let ultimaFichaNueva = null;    // [fila, col] de la última ficha generada (para animar)
+
+// Referencias al DOM
+const boardEl   = document.getElementById("board");
+const scoreEl   = document.getElementById("score");
+const bestEl    = document.getElementById("best");
+const overlayEl = document.getElementById("overlay");
+const overlayTitleEl   = document.getElementById("overlay-title");
+const overlayTextEl    = document.getElementById("overlay-text");
+const overlayActionsEl = document.getElementById("overlay-actions");
 
 // --- RENDER ---
-// Borra el tablero y lo vuelve a dibujar LEYENDO desde 'board'.
-// No decide nada del juego: solo refleja el estado actual en pantalla.
+// Borra el tablero y lo redibuja LEYENDO desde 'board'. Refleja el estado; no decide nada.
 function render() {
   boardEl.innerHTML = "";
   for (let fila = 0; fila < 4; fila++) {
@@ -27,40 +37,41 @@ function render() {
       cell.className = "cell";
       if (valor !== 0) {
         cell.textContent = valor;
-        cell.dataset.value = valor; // lo usaremos para colorear por CSS más adelante
+        cell.dataset.value = valor;                 // colorea por CSS según el valor
+        cell.classList.add("len" + String(valor).length); // ajusta tamaño de fuente
+        // Anima solo la ficha recién aparecida, no todo el tablero.
+        if (ultimaFichaNueva && ultimaFichaNueva[0] === fila && ultimaFichaNueva[1] === col) {
+          cell.classList.add("nueva");
+        }
       }
       boardEl.appendChild(cell);
     }
   }
+  actualizarMarcador();
 }
 
 // --- SPAWN ---
-// Coloca una ficha nueva (2 o 4) en una celda vacía elegida al azar.
+// Coloca una ficha nueva (2 o 4) en una celda vacía al azar y recuerda su posición.
 function spawn() {
   const vacias = [];
   for (let fila = 0; fila < 4; fila++) {
     for (let col = 0; col < 4; col++) {
-      if (board[fila][col] === 0) {
-        vacias.push([fila, col]);
-      }
+      if (board[fila][col] === 0) vacias.push([fila, col]);
     }
   }
-  if (vacias.length === 0) return; // tablero lleno: no hace nada
+  if (vacias.length === 0) return;
   const [fila, col] = vacias[Math.floor(Math.random() * vacias.length)];
-  board[fila][col] = Math.random() < 0.9 ? 2 : 4; // 90% un 2, 10% un 4
+  board[fila][col] = Math.random() < 0.9 ? 2 : 4;
+  ultimaFichaNueva = [fila, col];
 }
 
 // --- LÓGICA DE UNA FILA ---
-// Comprime: manda los no-ceros a la izquierda, ceros al final.
 function comprimir(fila) {
   const sinCeros = fila.filter(v => v !== 0);
-  while (sinCeros.length < 4) {
-    sinCeros.push(0);
-  }
+  while (sinCeros.length < 4) sinCeros.push(0);
   return sinCeros;
 }
 
-// Fusiona adyacentes iguales (una sola vez cada una) en una fila YA comprimida.
 function fusionar(fila) {
   for (let i = 0; i < 3; i++) {
     if (fila[i] !== 0 && fila[i] === fila[i + 1]) {
@@ -73,7 +84,6 @@ function fusionar(fila) {
   return fila;
 }
 
-// Mueve una fila a la izquierda: comprimir -> fusionar -> comprimir.
 function moverFilaIzquierda(fila) {
   fila = comprimir(fila);
   fila = fusionar(fila);
@@ -82,156 +92,37 @@ function moverFilaIzquierda(fila) {
 }
 
 // --- TRANSFORMACIONES DE MATRIZ ---
-// Invierte cada fila (espejo horizontal). Para el movimiento a la derecha.
 function invertirFilas(matriz) {
   return matriz.map(fila => [...fila].reverse());
 }
 
-// Transpone la matriz (filas <-> columnas). Para los movimientos verticales.
 function transponer(matriz) {
   const resultado = [];
   for (let col = 0; col < 4; col++) {
     const nuevaFila = [];
-    for (let fila = 0; fila < 4; fila++) {
-      nuevaFila.push(matriz[fila][col]);
-    }
+    for (let fila = 0; fila < 4; fila++) nuevaFila.push(matriz[fila][col]);
     resultado.push(nuevaFila);
   }
   return resultado;
 }
 
-// Aplica moverFilaIzquierda a las 4 filas.
 function moverMatrizIzquierda(matriz) {
   return matriz.map(fila => moverFilaIzquierda(fila));
 }
 
 // --- COPIA Y COMPARACIÓN ---
-// Copia profunda de una matriz 4x4 (clona también las filas internas).
 function copiar(matriz) {
   return matriz.map(fila => [...fila]);
 }
 
-// ¿Dos matrices tienen el mismo contenido?
 function sonIguales(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
 // --- MOVIMIENTO COMPLETO ---
-// Mueve todo el tablero en una dirección y genera ficha nueva SOLO si cambió algo.
 function mover(direccion) {
-  const previo = copiar(board); // foto del tablero antes de mover
+  if (!overlayEl.hidden) return; // si hay overlay (fin/victoria), no se mueve
 
-  if (direccion === "left") {
-    board = moverMatrizIzquierda(board);
-  } else if (direccion === "right") {
-    board = invertirFilas(board);
-    board = moverMatrizIzquierda(board);
-    board = invertirFilas(board);
-  } else if (direccion === "up") {
-    board = transponer(board);
-    board = moverMatrizIzquierda(board);
-    board = transponer(board);
-  } else if (direccion === "down") {
-    board = transponer(board);
-    board = invertirFilas(board);
-    board = moverMatrizIzquierda(board);
-    board = invertirFilas(board);
-    board = transponer(board);
-  }
-
-  if (!sonIguales(previo, board)) {
-    spawn();
-  }
-
-  render();
-}
-
-// --- CONTROL POR TECLADO ---
-// Traduce cada flecha del teclado a una dirección y mueve el tablero.
-document.addEventListener("keydown", (evento) => {
-  const direccion = {
-    ArrowLeft: "left",
-    ArrowRight: "right",
-    ArrowUp: "up",
-    ArrowDown: "down",
-  }[evento.key];
-
-  if (direccion) {
-    evento.preventDefault(); // evita que las flechas hagan scroll en la página
-    mover(direccion);
-  }
-});
-
-// --- CONTROL TÁCTIL (SWIPE) ---
-let inicioX = 0;
-let inicioY = 0;
-
-boardEl.addEventListener("touchstart", (evento) => {
-  inicioX = evento.touches[0].clientX;
-  inicioY = evento.touches[0].clientY;
-});
-
-boardEl.addEventListener("touchend", (evento) => {
-  const finX = evento.changedTouches[0].clientX;
-  const finY = evento.changedTouches[0].clientY;
-
-  const deltaX = finX - inicioX; // desplazamiento horizontal
-  const deltaY = finY - inicioY; // desplazamiento vertical
-
-  const UMBRAL = 30; // mínimo de píxeles para considerarlo swipe (ignora toques)
-
-  // Si el gesto fue demasiado corto, no es un swipe: lo ignoramos.
-  if (Math.abs(deltaX) < UMBRAL && Math.abs(deltaY) < UMBRAL) return;
-
-  // ¿Se movió más en horizontal o en vertical? El eje dominante decide.
-  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    mover(deltaX > 0 ? "right" : "left");
-  } else {
-    mover(deltaY > 0 ? "down" : "up");
-  }
-});
-
-// --- FIN DE PARTIDA ---
-
-// ¿Queda alguna celda vacía?
-function hayVacias() {
-  for (let fila = 0; fila < 4; fila++) {
-    for (let col = 0; col < 4; col++) {
-      if (board[fila][col] === 0) return true;
-    }
-  }
-  return false;
-}
-
-// ¿Hay algún par de fichas adyacentes iguales (horizontal o vertical)?
-function hayFusionPosible() {
-  for (let fila = 0; fila < 4; fila++) {
-    for (let col = 0; col < 4; col++) {
-      const valor = board[fila][col];
-      // Vecina de la derecha: solo si no estamos en la última columna.
-      if (col < 3 && valor === board[fila][col + 1]) return true;
-      // Vecina de abajo: solo si no estamos en la última fila.
-      if (fila < 3 && valor === board[fila + 1][col]) return true;
-    }
-  }
-  return false;
-}
-
-// ¿Se acabó la partida? Solo si NO hay huecos Y NO hay fusiones posibles.
-function esGameOver() {
-  return !hayVacias() && !hayFusionPosible();
-}
-
-// ¿Alguien alcanzó 2048?
-function hayVictoria() {
-  for (let fila = 0; fila < 4; fila++) {
-    for (let col = 0; col < 4; col++) {
-      if (board[fila][col] === 2048) return true;
-    }
-  }
-  return false;
-}
-function mover(direccion) {
   const previo = copiar(board);
 
   if (direccion === "left") {
@@ -254,19 +145,174 @@ function mover(direccion) {
 
   if (!sonIguales(previo, board)) {
     spawn();
+  } else {
+    ultimaFichaNueva = null; // no hubo cambio: nada que animar
   }
 
   render();
 
-  // Comprobación de fin de partida (provisional con alert; el aviso bonito va en el pulido)
-  if (hayVictoria()) {
-    alert("¡Has llegado a 2048! 🎉");
+  // Fin de partida
+  if (!victoriaAvisada && hayVictoria()) {
+    victoriaAvisada = true;
+    mostrarVictoria();
   } else if (esGameOver()) {
-    alert("Game over — no quedan movimientos");
+    mostrarGameOver();
   }
 }
 
-// --- INICIO DE PARTIDA ---
+// --- FIN DE PARTIDA ---
+function hayVacias() {
+  for (let fila = 0; fila < 4; fila++)
+    for (let col = 0; col < 4; col++)
+      if (board[fila][col] === 0) return true;
+  return false;
+}
+
+function hayFusionPosible() {
+  for (let fila = 0; fila < 4; fila++) {
+    for (let col = 0; col < 4; col++) {
+      const valor = board[fila][col];
+      if (col < 3 && valor === board[fila][col + 1]) return true; // vecina derecha
+      if (fila < 3 && valor === board[fila + 1][col]) return true; // vecina abajo
+    }
+  }
+  return false;
+}
+
+function esGameOver() {
+  return !hayVacias() && !hayFusionPosible();
+}
+
+function hayVictoria() {
+  for (let fila = 0; fila < 4; fila++)
+    for (let col = 0; col < 4; col++)
+      if (board[fila][col] === 2048) return true;
+  return false;
+}
+
+// --- PERSISTENCIA DEL RÉCORD ---
+// Guardamos un OBJETO, no un número suelto: así mañana se le añaden campos
+// (fecha, última partida...) y viaja tal cual a una API sin reescribir nada.
+function guardarRecord(valor) {
+  try {
+    localStorage.setItem("stats2048", JSON.stringify({ record: valor }));
+  } catch (e) { /* si localStorage falla, el juego sigue igual */ }
+}
+
+function leerRecord() {
+  try {
+    const crudo = localStorage.getItem("stats2048");
+    if (!crudo) return 0;
+    return JSON.parse(crudo).record || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+// --- MARCADOR ---
+function actualizarMarcador() {
+  if (score > best) {
+    best = score;
+    guardarRecord(best);
+  }
+  scoreEl.textContent = score;
+  bestEl.textContent = best;
+}
+
+// --- OVERLAY (fin / victoria) ---
+function mostrarOverlay(titulo, texto, botones) {
+  overlayTitleEl.textContent = titulo;
+  overlayTextEl.textContent = texto;
+  overlayActionsEl.innerHTML = "";
+  botones.forEach(b => {
+    const btn = document.createElement("button");
+    btn.className = "btn" + (b.ghost ? " ghost" : "");
+    btn.textContent = b.label;
+    btn.addEventListener("click", b.onClick);
+    overlayActionsEl.appendChild(btn);
+  });
+  overlayEl.hidden = false;
+}
+
+function ocultarOverlay() {
+  overlayEl.hidden = true;
+}
+
+function mostrarVictoria() {
+  mostrarOverlay(
+    "¡2048!",
+    "Has llegado. Puedes seguir para superar tu récord.",
+    [
+      { label: "Seguir jugando", ghost: true, onClick: ocultarOverlay },
+      { label: "Nueva partida", onClick: nuevaPartida },
+    ]
+  );
+}
+
+function mostrarGameOver() {
+  mostrarOverlay(
+    "Sin movimientos",
+    "El tablero está bloqueado. Puntuación: " + score + ".",
+    [{ label: "Nueva partida", onClick: nuevaPartida }]
+  );
+}
+
+// --- NUEVA PARTIDA ---
+function nuevaPartida() {
+  board = [
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ];
+  score = 0;
+  victoriaAvisada = false;
+  ultimaFichaNueva = null;
+  ocultarOverlay();
+  spawn();
+  spawn();
+  render();
+}
+
+// --- ENTRADA: TECLADO ---
+document.addEventListener("keydown", (evento) => {
+  const direccion = {
+    ArrowLeft:  "left",
+    ArrowRight: "right",
+    ArrowUp:    "up",
+    ArrowDown:  "down",
+  }[evento.key];
+  if (direccion) {
+    evento.preventDefault();
+    mover(direccion);
+  }
+});
+
+// --- ENTRADA: TÁCTIL (SWIPE) ---
+let inicioX = 0;
+let inicioY = 0;
+
+boardEl.addEventListener("touchstart", (evento) => {
+  inicioX = evento.touches[0].clientX;
+  inicioY = evento.touches[0].clientY;
+});
+
+boardEl.addEventListener("touchend", (evento) => {
+  const deltaX = evento.changedTouches[0].clientX - inicioX;
+  const deltaY = evento.changedTouches[0].clientY - inicioY;
+  const UMBRAL = 30;
+  if (Math.abs(deltaX) < UMBRAL && Math.abs(deltaY) < UMBRAL) return;
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    mover(deltaX > 0 ? "right" : "left");
+  } else {
+    mover(deltaY > 0 ? "down" : "up");
+  }
+});
+
+// --- BOTÓN NUEVA PARTIDA ---
+document.getElementById("new-game").addEventListener("click", nuevaPartida);
+
+// --- INICIO ---
 spawn();
 spawn();
 render();
