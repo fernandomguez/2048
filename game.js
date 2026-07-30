@@ -388,3 +388,26 @@ spawn();
 render();
 actualizarBotonDeshacer();
 actualizarBotonBomba();
+
+// --- BIENVENIDA (en cada carga de la página, no al reiniciar) ---
+const welcomeEl = document.getElementById("welcome");
+
+function cerrarBienvenida() {
+  // Si el usuario prefiere menos movimiento, ocultamos sin animar.
+  const reducirMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducirMovimiento) {
+    welcomeEl.hidden = true;
+    return;
+  }
+  // Reproduce la animación de salida y oculta cuando termina.
+  welcomeEl.classList.add("cerrando");
+  const card = welcomeEl.querySelector(".welcome-card");
+  card.addEventListener("animationend", () => {
+    welcomeEl.hidden = true;
+    welcomeEl.classList.remove("cerrando");
+  }, { once: true });
+}
+
+document.getElementById("welcome-close").addEventListener("click", cerrarBienvenida);
+
+welcomeEl.hidden = false; // se muestra al arrancar el script (cada carga)

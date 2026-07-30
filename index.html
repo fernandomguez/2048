@@ -48,7 +48,6 @@
         <span class="count" id="bomb-count">1</span>
       </button>
     </div>
-    <p class="hint">Flechas en escritorio &middot; desliza en m&oacute;vil &middot; usa los power-ups con cabeza</p>
 
     <div class="board-wrap">
       <div id="board" class="board"></div>
@@ -59,6 +58,29 @@
           <h2 class="overlay-title" id="overlay-title">Fin</h2>
           <p class="overlay-text" id="overlay-text"></p>
           <div class="overlay-actions" id="overlay-actions"></div>
+        </div>
+      </div>
+
+      <!-- Overlay de bienvenida (aparece en cada carga de la página) -->
+      <div class="overlay welcome-overlay" id="welcome" hidden>
+        <div class="welcome-card">
+          <h2 class="welcome-title">Bienvenido a 2048</h2>
+          <p class="welcome-text">
+            Desliza las fichas para moverlas
+            <span class="welcome-nota">(en PC, usa las flechas del teclado)</span>.
+            Cuando dos fichas del mismo número se juntan, se fusionan y se suman.
+            El objetivo es seguir sumando hasta conseguir la ficha <strong>2048</strong>.
+          </p>
+          <div class="welcome-novedades">
+            <p class="welcome-novedades-titulo">Novedades de esta versión</p>
+            <ul>
+              <li><span class="nov-icono">↩︎</span> Puedes <strong>deshacer</strong> tus movimientos (3 usos).</li>
+              <li><span class="nov-icono">💣</span> Tienes una <strong>bomba</strong> para eliminar una ficha.</li>
+            </ul>
+          </div>
+          <div class="overlay-actions">
+            <button class="btn" id="welcome-close">Entendido</button>
+          </div>
         </div>
       </div>
     </div>
