@@ -66,6 +66,15 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body {
+  height: 100%;
+  overflow: hidden;              /* nada de scroll */
+  overscroll-behavior: none;     /* mata el "pull to refresh" y el rebote */
+  touch-action: none;            /* el navegador no interpreta gestos táctiles */
+  position: fixed;               /* fija la página, refuerza el bloqueo en iOS */
+  width: 100%;
+}
+
 body {
   min-height: 100vh;
   display: grid;

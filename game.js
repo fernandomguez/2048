@@ -408,12 +408,13 @@ document.addEventListener("keydown", (evento) => {
 let inicioX = 0;
 let inicioY = 0;
 
-boardEl.addEventListener("touchstart", (evento) => {
+document.addEventListener("touchstart", (evento) => {
   inicioX = evento.touches[0].clientX;
   inicioY = evento.touches[0].clientY;
-});
+}, { passive: true });
 
-boardEl.addEventListener("touchend", (evento) => {
+
+document.addEventListener("touchend", (evento) => {
   const deltaX = evento.changedTouches[0].clientX - inicioX;
   const deltaY = evento.changedTouches[0].clientY - inicioY;
   const UMBRAL = 30;
@@ -423,7 +424,7 @@ boardEl.addEventListener("touchend", (evento) => {
   } else {
     mover(deltaY > 0 ? "down" : "up");
   }
-});
+}, { passive: true });
 
 // --- BOTONES ---
 document.getElementById("new-game").addEventListener("click", nuevaPartida);
