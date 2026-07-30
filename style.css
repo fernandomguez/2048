@@ -64,15 +64,12 @@
 }
 .icon-btn.theme-toggle { padding: 9px 11px; }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
+  margin: 0;
   height: 100%;
-  overflow: hidden;              /* nada de scroll */
-  overscroll-behavior: none;     /* mata el "pull to refresh" y el rebote */
-  touch-action: none;            /* el navegador no interpreta gestos táctiles */
-  position: fixed;               /* fija la página, refuerza el bloqueo en iOS */
-  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {

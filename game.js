@@ -230,23 +230,6 @@ function hayVictoria() {
   return false;
 }
 
-// --- PERSISTENCIA DEL RÉCORD (objeto, preparado para una futura API) ---
-function guardarRecord(valor) {
-  try {
-    localStorage.setItem("stats2048", JSON.stringify({ record: valor }));
-  } catch (e) { /* si localStorage falla, el juego sigue igual */ }
-}
-
-function leerRecord() {
-  try {
-    const crudo = localStorage.getItem("stats2048");
-    if (!crudo) return 0;
-    return JSON.parse(crudo).record || 0;
-  } catch (e) {
-    return 0;
-  }
-}
-
 // --- MARCADOR ---
 function actualizarMarcador() {
   if (score > best) {
@@ -425,6 +408,12 @@ document.addEventListener("touchend", (evento) => {
     mover(deltaY > 0 ? "down" : "up");
   }
 }, { passive: true });
+
+// Bloquea el scroll del navegador durante cualquier arrastre táctil.
+// passive:false es OBLIGATORIO aquí; sin él, preventDefault se ignora.
+document.addEventListener("touchmove", (evento) => {
+  evento.preventDefault();
+}, { passive: false });
 
 // --- BOTONES ---
 document.getElementById("new-game").addEventListener("click", nuevaPartida);
