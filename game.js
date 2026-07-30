@@ -3,6 +3,37 @@
 //  Estado + movimiento/fusión + fin de partida + récord + power-ups
 // ============================================================
 
+// --- TEMA CLARO / OSCURO ---
+const themeIcon = document.getElementById("theme-icon");
+
+// Aplica un tema ("light" | "dark") al <html> y actualiza el icono.
+function aplicarTema(tema) {
+  document.documentElement.setAttribute("data-theme", tema);
+  themeIcon.textContent = tema === "dark" ? "☀️" : "🌙";
+}
+
+// Al arrancar: si el usuario eligió tema, úsalo; si no, sigue al sistema.
+function iniciarTema() {
+  const guardado = leerStats().tema;
+  if (guardado) {
+    aplicarTema(guardado);
+  } else {
+    const sistemaOscuro = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    aplicarTema(sistemaOscuro ? "dark" : "light");
+  }
+}
+
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const actual = document.documentElement.getAttribute("data-theme");
+  const nuevo = actual === "dark" ? "light" : "dark";
+  aplicarTema(nuevo);
+  const stats = leerStats();
+  stats.tema = nuevo;          // recuerda la elección
+  guardarStats(stats);
+});
+
+iniciarTema(); // llámalo lo antes posible
+
 // --- ESTADO ---
 let board = [
   [0, 0, 0, 0],
@@ -342,6 +373,23 @@ function nuevaPartida() {
   actualizarBotonBomba();
 }
 
+//Para el tema claro / oscuro
+function leerStats() {
+  try {
+    const crudo = localStorage.getItem("stats2048");
+    return crudo ? JSON.parse(crudo) : {};
+  } catch (e) { return {}; }
+}
+function guardarStats(stats) {
+  try { localStorage.setItem("stats2048", JSON.stringify(stats)); } catch (e) {}
+}
+function leerRecord() { return leerStats().record || 0; }
+function guardarRecord(valor) {
+  const stats = leerStats();
+  stats.record = valor;
+  guardarStats(stats);
+}
+
 // --- ENTRADA: TECLADO ---
 document.addEventListener("keydown", (evento) => {
   const direccion = {
@@ -393,19 +441,13 @@ actualizarBotonBomba();
 const welcomeEl = document.getElementById("welcome");
 
 function cerrarBienvenida() {
-  // Si el usuario prefiere menos movimiento, ocultamos sin animar.
-  const reducirMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reducirMovimiento) {
-    welcomeEl.hidden = true;
-    return;
-  }
-  // Reproduce la animación de salida y oculta cuando termina.
   welcomeEl.classList.add("cerrando");
-  const card = welcomeEl.querySelector(".welcome-card");
-  card.addEventListener("animationend", () => {
+  // Oculta tras la duración de la animación, se dispare o no el evento.
+  // Así el botón SIEMPRE cierra, aunque la animación falte o falle.
+  setTimeout(() => {
     welcomeEl.hidden = true;
     welcomeEl.classList.remove("cerrando");
-  }, { once: true });
+  }, 220);
 }
 
 document.getElementById("welcome-close").addEventListener("click", cerrarBienvenida);
