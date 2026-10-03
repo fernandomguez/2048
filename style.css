@@ -49,18 +49,9 @@
   --overlay-bg: rgba(244, 246, 249, 0.86);
 }
 
-/* Tema oscuro FORZADO por el usuario */
-:root[data-theme="dark"] {
-  --bg:        #14171c;
-  --bg-glow:   #1d2530;
-  --bg-2:      #191f28;
-  --board:     #1e242c;
-  --cell:      #262d37;
-  --ink:       #e9edf2;
-  --ink-dim:   #8a94a3;
-  --line:      #2c333d;
-  --overlay-bg: rgba(20, 23, 28, 0.82);
-}
+/* Tema oscuro forzado: no hace falta bloque explícito. `:root` YA es el tema
+   oscuro por defecto, y las ramas de arriba solo aplican sin data-theme o con
+   data-theme="light". Los valores serían idénticos: se eliminó la duplicación. */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -332,3 +323,33 @@ h1 {
   .welcome-card,
   .welcome-overlay.cerrando .welcome-card { animation: none; }
 }
+
+/* ---- Aviso: abierto como file:// (sin servidor) ---- */
+.aviso-file {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--bg);
+}
+.aviso-file[hidden] { display: none; }
+.aviso-card {
+  max-width: 440px;
+  text-align: center;
+  background: var(--board);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 26px 24px;
+}
+.aviso-card h2 { font-size: 1.4rem; margin-bottom: 12px; }
+.aviso-card p { color: var(--ink-dim); line-height: 1.55; margin-bottom: 10px; }
+.aviso-card code, .aviso-card pre {
+  font-family: ui-monospace, Consolas, monospace;
+  background: var(--cell);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.aviso-card pre { padding: 10px; margin-bottom: 10px; }
+.aviso-alternativa { font-size: 0.85rem; }

@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2048</title>
+  <meta name="description" content="2048 en el navegador: desliza las fichas, fusiona números y llega a la ficha 2048. Con tema claro/oscuro, deshacer y bomba. JavaScript vanilla, sin dependencias.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="2048">
+  <meta property="og:description" content="Desliza las fichas, fusiona números y llega a 2048. Con tema claro/oscuro, deshacer y bomba.">
+  <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +23,7 @@
       <div class="panel">
         <div class="score-box">
           <span class="score-label">Puntos</span>
-          <span class="score-value" id="score">0</span>
+          <span class="score-value" id="score" aria-live="polite" aria-atomic="true">0</span>
         </div>
         <div class="score-box">
           <span class="score-label">Récord</span>
@@ -53,10 +58,10 @@
     </div>
 
     <div class="board-wrap">
-      <div id="board" class="board"></div>
+      <div id="board" class="board" tabindex="-1"></div>
 
       <!-- Overlay de fin de partida / victoria (oculto por defecto) -->
-      <div class="overlay" id="overlay" hidden>
+      <div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlay-title">
         <div class="overlay-card">
           <h2 class="overlay-title" id="overlay-title">Fin</h2>
           <p class="overlay-text" id="overlay-text"></p>
@@ -65,9 +70,9 @@
       </div>
 
       <!-- Overlay de bienvenida (aparece en cada carga de la página) -->
-      <div class="overlay welcome-overlay" id="welcome" hidden>
+      <div class="overlay welcome-overlay" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcome-title">
         <div class="welcome-card">
-          <h2 class="welcome-title">Bienvenido a 2048</h2>
+          <h2 class="welcome-title" id="welcome-title">Bienvenido a 2048</h2>
           <p class="welcome-text">
             Desliza las fichas para moverlas
             <span class="welcome-nota">(en PC, usa las flechas del teclado)</span>.
@@ -89,6 +94,29 @@
     </div>
   </main>
 
-  <script src="game.js"></script>
+  <script type="module" src="game.js"></script>
+
+  <!-- Aviso solo si alguien abre el archivo directamente (file://): los módulos
+       ES están bloqueados por CORS y el juego no arrancaría. -->
+  <div class="aviso-file" id="aviso-file" hidden>
+    <div class="aviso-card">
+      <h2>El juego necesita un servidor local</h2>
+      <p>
+        Lo estás abriendo como archivo (<code>file://</code>) y el navegador
+        bloquea la carga de los módulos JavaScript.
+      </p>
+      <p>Ejecuta esto en la carpeta del proyecto:</p>
+      <pre>npm start</pre>
+      <p>y abre <code>http://localhost:8000</code></p>
+      <p class="aviso-alternativa">
+        Alternativa con Python: <code>python -m http.server 8000</code>
+      </p>
+    </div>
+  </div>
+  <script>
+    if (location.protocol === "file:") {
+      document.getElementById("aviso-file").hidden = false;
+    }
+  </script>
 </body>
 </html>

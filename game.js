@@ -1,7 +1,34 @@
 // ============================================================
-//  2048 — game.js
-//  Estado + movimiento/fusión + fin de partida + récord + power-ups
+//  2048 — game.js (capa UI)
+//  Entradas, render, overlays, power-ups y persistencia.
+//  La lógica pura del juego vive en game-core.js.
 // ============================================================
+
+import {
+  TAMANO,
+  USOS_DESHACER_INICIALES,
+  BOMBAS_INICIALES,
+  crearTablero,
+  agregarFicha,
+  aplicarMovimiento,
+  aplicarDeshacer,
+  esGameOver,
+  hayVictoria,
+} from "./game-core.js";
+
+// --- REFERENCIAS AL DOM ---
+const boardEl   = document.getElementById("board");
+const scoreEl   = document.getElementById("score");
+const bestEl    = document.getElementById("best");
+const overlayEl = document.getElementById("overlay");
+const overlayTitleEl   = document.getElementById("overlay-title");
+const overlayTextEl    = document.getElementById("overlay-text");
+const overlayActionsEl = document.getElementById("overlay-actions");
+const undoBtn   = document.getElementById("undo");
+const bombBtn   = document.getElementById("bomb");
+const undoCount = document.getElementById("undo-count");
+const bombCount = document.getElementById("bomb-count");
+const welcomeEl = document.getElementById("welcome");
 
 // --- TEMA CLARO / OSCURO ---
 const themeIcon = document.getElementById("theme-icon");
@@ -35,13 +62,7 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 iniciarTema(); // llámalo lo antes posible
 
 // --- ESTADO ---
-let board = [
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-];
-
+let board = crearTablero();
 let score = 0;
 let best = leerRecord();
 let victoriaAvisada = false;
@@ -49,28 +70,24 @@ let ultimaFichaNueva = null;
 
 // Power-ups
 let historial = [];
-let deshacerRestantes = 3;
+let deshacerRestantes = USOS_DESHACER_INICIALES;
 let modoBomba = false;
-let bombasRestantes = 1;
+let bombasRestantes = BOMBAS_INICIALES;
 
-// Referencias al DOM
-const boardEl   = document.getElementById("board");
-const scoreEl   = document.getElementById("score");
-const bestEl    = document.getElementById("best");
-const overlayEl = document.getElementById("overlay");
-const overlayTitleEl   = document.getElementById("overlay-title");
-const overlayTextEl    = document.getElementById("overlay-text");
-const overlayActionsEl = document.getElementById("overlay-actions");
-const undoBtn   = document.getElementById("undo");
-const bombBtn   = document.getElementById("bomb");
-const undoCount = document.getElementById("undo-count");
-const bombCount = document.getElementById("bomb-count");
+// --- MODALES ---
+// Un modal (bienvenida o fin de partida) impide jugar. Este es el ÚNICO sitio
+// que lo decide: mover() y toggleBomba() lo consultan, así que teclado, swipe
+// y power-ups quedan bloqueados de forma coherente sin repetir la lógica.
+function hayModalAbierto() {
+  return !welcomeEl.hidden || !overlayEl.hidden;
+}
 
 // --- RENDER ---
+// Solo representa el estado en el DOM: sin persistencia ni otros efectos.
 function render() {
   boardEl.innerHTML = "";
-  for (let fila = 0; fila < 4; fila++) {
-    for (let col = 0; col < 4; col++) {
+  for (let fila = 0; fila < TAMANO; fila++) {
+    for (let col = 0; col < TAMANO; col++) {
       const valor = board[fila][col];
       const cell = document.createElement("div");
       cell.className = "cell";
@@ -90,100 +107,24 @@ function render() {
 
 // --- SPAWN ---
 function spawn() {
-  const vacias = [];
-  for (let fila = 0; fila < 4; fila++) {
-    for (let col = 0; col < 4; col++) {
-      if (board[fila][col] === 0) vacias.push([fila, col]);
-    }
-  }
-  if (vacias.length === 0) return;
-  const [fila, col] = vacias[Math.floor(Math.random() * vacias.length)];
-  board[fila][col] = Math.random() < 0.9 ? 2 : 4;
-  ultimaFichaNueva = [fila, col];
-}
-
-// --- LÓGICA DE UNA FILA ---
-function comprimir(fila) {
-  const sinCeros = fila.filter(v => v !== 0);
-  while (sinCeros.length < 4) sinCeros.push(0);
-  return sinCeros;
-}
-
-function fusionar(fila) {
-  for (let i = 0; i < 3; i++) {
-    if (fila[i] !== 0 && fila[i] === fila[i + 1]) {
-      fila[i] = fila[i] * 2;
-      fila[i + 1] = 0;
-      score += fila[i];
-      i++; // salta la siguiente: evita fusión en cadena
-    }
-  }
-  return fila;
-}
-
-function moverFilaIzquierda(fila) {
-  fila = comprimir(fila);
-  fila = fusionar(fila);
-  fila = comprimir(fila);
-  return fila;
-}
-
-// --- TRANSFORMACIONES DE MATRIZ ---
-function invertirFilas(matriz) {
-  return matriz.map(fila => [...fila].reverse());
-}
-
-function transponer(matriz) {
-  const resultado = [];
-  for (let col = 0; col < 4; col++) {
-    const nuevaFila = [];
-    for (let fila = 0; fila < 4; fila++) nuevaFila.push(matriz[fila][col]);
-    resultado.push(nuevaFila);
-  }
-  return resultado;
-}
-
-function moverMatrizIzquierda(matriz) {
-  return matriz.map(fila => moverFilaIzquierda(fila));
-}
-
-// --- COPIA Y COMPARACIÓN ---
-function copiar(matriz) {
-  return matriz.map(fila => [...fila]);
-}
-
-function sonIguales(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
+  const resultado = agregarFicha(board);
+  board = resultado.matriz;
+  if (resultado.posicion) ultimaFichaNueva = resultado.posicion;
 }
 
 // --- MOVIMIENTO COMPLETO ---
-function mover(direccion) {
-  if (!overlayEl.hidden) return;
+export function mover(direccion) {
+  if (hayModalAbierto()) return;
   if (modoBomba) return;
 
-  const previo = copiar(board);
   const scorePrevio = score;
+  const resultado = aplicarMovimiento(board, direccion);
+  board = resultado.matriz;
 
-  if (direccion === "left") {
-    board = moverMatrizIzquierda(board);
-  } else if (direccion === "right") {
-    board = invertirFilas(board);
-    board = moverMatrizIzquierda(board);
-    board = invertirFilas(board);
-  } else if (direccion === "up") {
-    board = transponer(board);
-    board = moverMatrizIzquierda(board);
-    board = transponer(board);
-  } else if (direccion === "down") {
-    board = transponer(board);
-    board = invertirFilas(board);
-    board = moverMatrizIzquierda(board);
-    board = invertirFilas(board);
-    board = transponer(board);
-  }
-
-  if (!sonIguales(previo, board)) {
-    historial.push({ board: previo, score: scorePrevio });
+  if (resultado.cambio) {
+    historial.push({ board: resultado.previo, score: scorePrevio });
+    score += resultado.puntos;
+    actualizarRecord();
     spawn();
   } else {
     ultimaFichaNueva = null;
@@ -192,62 +133,50 @@ function mover(direccion) {
   render();
   actualizarBotonDeshacer();
 
-  if (!victoriaAvisada && hayVictoria()) {
+  if (!victoriaAvisada && hayVictoria(board)) {
     victoriaAvisada = true;
     mostrarVictoria();
-  } else if (esGameOver()) {
+  } else if (esGameOver(board)) {
     mostrarGameOver();
   }
 }
 
-// --- FIN DE PARTIDA ---
-function hayVacias() {
-  for (let fila = 0; fila < 4; fila++)
-    for (let col = 0; col < 4; col++)
-      if (board[fila][col] === 0) return true;
-  return false;
-}
-
-function hayFusionPosible() {
-  for (let fila = 0; fila < 4; fila++) {
-    for (let col = 0; col < 4; col++) {
-      const valor = board[fila][col];
-      if (col < 3 && valor === board[fila][col + 1]) return true;
-      if (fila < 3 && valor === board[fila + 1][col]) return true;
-    }
-  }
-  return false;
-}
-
-function esGameOver() {
-  return !hayVacias() && !hayFusionPosible();
-}
-
-function hayVictoria() {
-  for (let fila = 0; fila < 4; fila++)
-    for (let col = 0; col < 4; col++)
-      if (board[fila][col] === 2048) return true;
-  return false;
-}
-
 // --- MARCADOR ---
 function actualizarMarcador() {
-  if (score > best) {
-    best = score;
-    guardarRecord(best);
-  }
   scoreEl.textContent = score;
   bestEl.textContent = best;
 }
 
+// El récord se guarda EXPLÍCITAMENTE donde cambia la puntuación, no al renderizar.
+function actualizarRecord() {
+  if (score > best) {
+    best = score;
+    guardarRecord(best);
+  }
+}
+
 // --- POWER-UP: DESHACER (pila de estados) ---
-function deshacer() {
-  if (historial.length === 0 || deshacerRestantes <= 0) return;
-  const anterior = historial.pop();
-  board = anterior.board;
-  score = anterior.score;
-  deshacerRestantes--;
+// Decisión de diseño: deshacer funciona también con el overlay de fin abierto.
+// Restaurar la partida cierra el overlay (revalidando el estado), de modo que el
+// usuario puede recuperarse de un game over en lugar de quedar bloqueado.
+export function deshacer() {
+  const resultado = aplicarDeshacer({
+    board,
+    score,
+    historial,
+    usos: deshacerRestantes,
+  });
+  if (!resultado.restaurado) return;
+
+  board = resultado.board;
+  score = resultado.score;
+  historial = resultado.historial;
+  deshacerRestantes = resultado.usos;
   ultimaFichaNueva = null;
+
+  if (esGameOver(board)) mostrarGameOver();
+  else ocultarOverlay();
+
   render();
   actualizarBotonDeshacer();
 }
@@ -258,8 +187,12 @@ function actualizarBotonDeshacer() {
 }
 
 // --- POWER-UP: BOMBA ---
-function toggleBomba() {
+// Decisión de diseño: la bomba NO forma parte del historial de deshacer
+// (es un recurso consumible que ya no recupera el deshacer). No cambiar sin
+// decidirlo como cambio de producto.
+export function toggleBomba() {
   if (bombasRestantes <= 0) return;
+  if (hayModalAbierto()) return; // con un modal abierto las celdas no son clicables
   modoBomba = !modoBomba;
   boardEl.classList.toggle("modo-bomba", modoBomba);
   actualizarBotonBomba();
@@ -277,8 +210,8 @@ boardEl.addEventListener("click", (evento) => {
   const celda = evento.target.closest(".cell");
   const indice = celdas.indexOf(celda);
   if (indice === -1) return;
-  const fila = Math.floor(indice / 4);
-  const col = indice % 4;
+  const fila = Math.floor(indice / TAMANO);
+  const col = indice % TAMANO;
   if (board[fila][col] === 0) { // celda vacía: cancela el modo sin gastar bomba
     modoBomba = false;
     boardEl.classList.remove("modo-bomba");
@@ -295,6 +228,8 @@ boardEl.addEventListener("click", (evento) => {
 });
 
 // --- OVERLAY (fin / victoria) ---
+let focoAnterior = null;
+
 function mostrarOverlay(titulo, texto, botones) {
   overlayTitleEl.textContent = titulo;
   overlayTextEl.textContent = texto;
@@ -306,14 +241,26 @@ function mostrarOverlay(titulo, texto, botones) {
     btn.addEventListener("click", b.onClick);
     overlayActionsEl.appendChild(btn);
   });
+  focoAnterior = document.activeElement;
   overlayEl.hidden = false;
+  // El foco entra en el diálogo para que teclado y lectores de pantalla lo anuncien.
+  const primero = overlayActionsEl.querySelector("button");
+  if (primero) primero.focus();
 }
 
 function ocultarOverlay() {
+  if (overlayEl.hidden) return; // nada que cerrar: no mover el foco
   overlayEl.hidden = true;
+  restaurarFoco();
 }
 
-function mostrarVictoria() {
+function restaurarFoco() {
+  const destino = focoAnterior && document.contains(focoAnterior) ? focoAnterior : boardEl;
+  focoAnterior = null;
+  destino.focus();
+}
+
+export function mostrarVictoria() {
   mostrarOverlay(
     "¡2048!",
     "Has llegado. Puedes seguir para superar tu récord.",
@@ -324,7 +271,7 @@ function mostrarVictoria() {
   );
 }
 
-function mostrarGameOver() {
+export function mostrarGameOver() {
   mostrarOverlay(
     "Sin movimientos",
     "El tablero está bloqueado. Puntuación: " + score + ".",
@@ -333,20 +280,17 @@ function mostrarGameOver() {
 }
 
 // --- NUEVA PARTIDA ---
-function nuevaPartida() {
-  board = [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-  ];
+// Única fuente de verdad para iniciar una partida: la usa el botón, el overlay
+// y la inicialización al cargar la página.
+export function nuevaPartida() {
+  board = crearTablero();
   score = 0;
   victoriaAvisada = false;
   ultimaFichaNueva = null;
   historial = [];
-  deshacerRestantes = 3;
+  deshacerRestantes = USOS_DESHACER_INICIALES;
   modoBomba = false;
-  bombasRestantes = 1;
+  bombasRestantes = BOMBAS_INICIALES;
   boardEl.classList.remove("modo-bomba");
   ocultarOverlay();
   spawn();
@@ -361,10 +305,10 @@ function leerStats() {
   try {
     const crudo = localStorage.getItem("stats2048");
     return crudo ? JSON.parse(crudo) : {};
-  } catch (e) { return {}; }
+  } catch { return {}; }
 }
 function guardarStats(stats) {
-  try { localStorage.setItem("stats2048", JSON.stringify(stats)); } catch (e) {}
+  try { localStorage.setItem("stats2048", JSON.stringify(stats)); } catch { /* sin almacenamiento disponible */ }
 }
 function leerRecord() { return leerStats().record || 0; }
 function guardarRecord(valor) {
@@ -421,14 +365,10 @@ undoBtn.addEventListener("click", deshacer);
 bombBtn.addEventListener("click", toggleBomba);
 
 // --- INICIO ---
-spawn();
-spawn();
-render();
-actualizarBotonDeshacer();
-actualizarBotonBomba();
+nuevaPartida();
 
 // --- BIENVENIDA (en cada carga de la página, no al reiniciar) ---
-const welcomeEl = document.getElementById("welcome");
+const DURACION_ANIMACION_BIENVENIDA = 220;
 
 function cerrarBienvenida() {
   welcomeEl.classList.add("cerrando");
@@ -437,9 +377,14 @@ function cerrarBienvenida() {
   setTimeout(() => {
     welcomeEl.hidden = true;
     welcomeEl.classList.remove("cerrando");
-  }, 220);
+    boardEl.focus();
+  }, DURACION_ANIMACION_BIENVENIDA);
 }
 
 document.getElementById("welcome-close").addEventListener("click", cerrarBienvenida);
 
 welcomeEl.hidden = false; // se muestra al arrancar el script (cada carga)
+document.getElementById("welcome-close").focus(); // el foco entra en el diálogo
+
+// Nota: mover/deshacer/toggleBomba/nuevaPartida/mostrarVictoria/mostrarGameOver
+// se exportan como API del módulo para que los tests de flujo conduzcan la UI.
