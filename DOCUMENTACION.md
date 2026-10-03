@@ -164,7 +164,8 @@ Orden recomendado antes de commit: `npm run lint` → `npm test`.
 ## 6. Estado actual de git — ✅ **TODO COMMITEADO** (2026-10-03)
 
 Se aplicó el plan de commits atómicos con el skill `git-commit-planner`.
-Sobre `a0dee4a`, los 7 commits nuevos son:
+Sobre `a0dee4a`, los 7 commits del plan son (a ellos se suman los de
+seguimiento: `.gitignore`/`.opencode` y las actualizaciones de esta memoria):
 
 | Mensaje | Contenido |
 | --- | --- |
