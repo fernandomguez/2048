@@ -240,3 +240,44 @@ index.html ──<script type="module">──► game.js (UI: entradas, render,
 scripts/servidor.mjs  → npm start (dev, sin dependencias)
 .github/workflows/ci.yml → lint + tests en push/PR
 ```
+
+## 10. Roadmap de mejoras propuestas (no implementadas)
+
+> Propuesta de 2026-10-03 para que el juego "deje de ser simple" y se convierta
+> en una app como tal. **Nada de esto está hecho**: es una lista para decidir
+> por dónde seguir. El primer paso (ordenar el historial en commits atómicos,
+> el "Bloque 4" original) ya está completo; después el orden sugerido era
+> **Bloque 1 → PWA (Bloque 3) → Bloque 2**.
+
+### Bloque 1 — Se siente jugable (impacto alto, esfuerzo medio)
+
+- **Animación real**: slide de fichas + pop de fusión + spawn, manteniendo
+  identidad de nodos en vez de recrearlos (FLIP o `transform`).
+  *Ojo: hoy `render()` reconstruye las 16 celdas (§ "Algoritmo intacto"); esto
+  obliga a cambiar esa decisión y a actualizar `AGENTS.md`.*
+- **Puntos flotantes** (`+8` subiendo sobre la celda fusionada).
+- **Háptica en móvil** (`navigator.vibrate` en fusión) y **sonido con Web Audio
+  API** (tonos generados, sin archivos de audio) con interruptor on/off.
+- **Guardar partida en curso** → recargas y sigues donde estabas (hoy solo se
+  persisten récord y tema).
+
+### Bloque 2 — Profundidad (retención)
+
+- **Tamaños de tablero**: 3×3 / 4×4 / 5×5 / 6×6 (`TAMANO` ya es constante
+  paramétrica; ojo con el CSS y con el cálculo del índice de celda).
+- **Panel de estadísticas**: partidas jugadas, puntuación media, ficha máxima,
+  tiempo medio, últimas partidas.
+- **Reto diario con semilla fija**: `agregarFicha` ya inyecta `rnd`, así que
+  hacer una partida determinista (mismo tablero para todos + código
+  compartible) es **muy barato** y es el gancho de retención más clásico.
+- **Progresión de power-ups**: ganar deshacer/bomba por hitos (llegar a 512,
+  etc.) en vez de números fijos.
+
+### Bloque 3 — Que sea "una app" literalmente
+
+- **PWA**: manifest + service worker offline + iconos 192/512 + `theme-color`.
+  Se instala en el móvil y funciona sin conexión, **sin build**.
+- **Compartir tablero**: Web Share API + captura en canvas (de paso cubre el
+  `og:image` de §8.1).
+- ⚠️ **Leaderboard online**: **fuera de la recomendación**, porque rompe el
+  "estático sin dependencias" y exige backend.
