@@ -168,9 +168,9 @@ Sobre `a0dee4a`, los 7 commits nuevos son:
 
 | Mensaje | Contenido |
 | --- | --- |
-| `Anade la logica pura del juego en game-core.js` | `game-core.js` |
-| `Separa la logica en game-core.js y usa modulos ES` | `game.js`, `index.html`, `style.css` |
-| `Anade tooling de desarrollo: npm, ESLint, Vitest y servidor local` | `package.json`, `package-lock.json`, ESLint, Vitest, `tests/setup.js`, `scripts/servidor.mjs`, `.gitignore` |
+| `Añade la lógica pura del juego en game-core.js` | `game-core.js` |
+| `Separa la lógica en game-core.js y usa módulos ES` | `game.js`, `index.html`, `style.css` |
+| `Añade tooling de desarrollo: npm, ESLint, Vitest y servidor local` | `package.json`, `package-lock.json`, ESLint, Vitest, `tests/setup.js`, `scripts/servidor.mjs`, `.gitignore` |
 | `Añade tests del núcleo puro en game-core.js` | `tests/game-core.test.js` |
 | `Añade tests de la capa de UI: flujos, markup y persistencia` | `tests/flujo.test.js`, `markup.test.js`, `persistencia.test.js` |
 | `Añade CI con lint y tests en GitHub Actions` | `.github/workflows/ci.yml` |
@@ -182,14 +182,18 @@ Dos incidencias del proceso, documentadas para no repetirlas:
   commits propios, pero **`git commit -m … -- <rutas>` toma el working tree,
   no el índice**: esos cambios quedaron absorbidos en el segundo commit. Para
   staging parcial, hacer `git add <rutas>` y **`git commit` sin pathspec**.
-- Los tres primeros mensajes van **sin tildes/ñ** (redacción inicial); los
-  cuatro siguientes, corregidos. Unificarlos exige reescribir historial.
+- Los tres primeros mensajes se redactaron sin tildes/ñ y se corrigieron con
+  `git rebase -i` (`reword`) **antes de ningún push**; el árbol quedó idéntico.
+  Queda la rama de respaldo `respaldo-antes-reword` para poder comparar
+  (`git diff respaldo-antes-reword HEAD` → vacío) y borrarla cuando convenga.
 
 Estado:
 
 - Working tree limpio; `.opencode/` está en `.gitignore` (configuración local
   del agente, no del proyecto).
-- **⚠️ SIN PUSH:** `origin/main` está 7 commits por detrás (ver §8.5).
+- **⚠️ SIN PUSH:** `origin/main` está por detrás; todos los commits de esta
+  auditoría siguen locales (conteo: `git rev-list --count origin/main..HEAD`).
+  Ver §8.5.
 - CI funcionará en el primer push (ya existe `package-lock.json`).
 
 ## 7. Validación final
@@ -215,8 +219,9 @@ Estado:
    comportamiento original, no tocado.
 4. **Sin focus-trap** en diálogos — mejora posible; tendría que permitir alcanzar
    el deshacer (fuera del overlay) o moverlo dentro.
-5. **Sin push** — `origin/main` está 7 commits por detrás; decidir cuándo subir
-   (el CI solo correrá después). Ver §6.
+5. **Sin push** — `origin/main` está por detrás: los commits de esta auditoría
+   siguen locales (conteo: `git rev-list --count origin/main..HEAD`). Subirlos
+   dispara el CI, que solo correrá después. Ver §6.
 6. **Possibile conversión a APK** — evaluada (recomendado Capacitor, `web-dir .`);
    no se ha hecho nada, solo consultada la viabilidad.
 
