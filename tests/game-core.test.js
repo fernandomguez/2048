@@ -15,6 +15,7 @@ import {
   hayFusionPosible,
   hayVictoria,
   aplicarDeshacer,
+  esPartidaValida,
 } from "../game-core.js";
 
 // Tablero de referencia asimétrico para probar las 4 direcciones.
@@ -213,6 +214,105 @@ describe("aplicarMovimiento (las 4 direcciones)", () => {
   });
 });
 
+describe("traza de animación (4 direcciones)", () => {
+  const noCeros = matriz => matriz.flat().filter(v => v !== 0).length;
+  const sumarFusiones = fusiones => fusiones.reduce((total, f) => total + f.valor, 0);
+
+  // Invariantes comunes: los puntos son la suma de los valores fusionados,
+  // cada fusión elimina una celda no nula y todo origen era no nulo.
+  function comprobarInvariantes(r) {
+    expect(sumarFusiones(r.traza.fusiones)).toBe(r.puntos);
+    expect(noCeros(r.matriz)).toBe(noCeros(r.previo) - r.traza.fusiones.length);
+    const origenes = [
+      ...r.traza.movimientos.map(m => m.desde),
+      ...r.traza.fusiones.flatMap(f => f.desde),
+    ];
+    for (const [fila, col] of origenes) {
+      expect(r.previo[fila][col]).not.toBe(0);
+    }
+  }
+
+  it("left: fusiona en (0,0) y arrastra el resto hasta la columna 0", () => {
+    const r = aplicarMovimiento(INICIAL, "left");
+    expect(r.traza).toEqual({
+      movimientos: [
+        { desde: [0, 2], hasta: [0, 0] },
+        { desde: [2, 1], hasta: [2, 0] },
+        { desde: [3, 3], hasta: [3, 0] },
+      ],
+      fusiones: [
+        { en: [0, 0], valor: 4, desde: [[0, 0], [0, 2]] },
+      ],
+    });
+    comprobarInvariantes(r);
+  });
+
+  it("right: fusiona en (0,3) con los orígenes en orden inverso", () => {
+    const r = aplicarMovimiento(INICIAL, "right");
+    expect(r.traza).toEqual({
+      movimientos: [
+        { desde: [0, 2], hasta: [0, 3] },
+        { desde: [0, 0], hasta: [0, 3] },
+        { desde: [2, 1], hasta: [2, 3] },
+      ],
+      fusiones: [
+        { en: [0, 3], valor: 4, desde: [[0, 2], [0, 0]] },
+      ],
+    });
+    comprobarInvariantes(r);
+  });
+
+  it("up: el 4 y el 8 suben a la fila 0, sin fusiones", () => {
+    const r = aplicarMovimiento(INICIAL, "up");
+    expect(r.traza).toEqual({
+      movimientos: [
+        { desde: [2, 1], hasta: [0, 1] },
+        { desde: [3, 3], hasta: [0, 3] },
+      ],
+      fusiones: [],
+    });
+    comprobarInvariantes(r);
+  });
+
+  it("down: las tres fichas descienden a la fila 3, sin fusiones", () => {
+    const r = aplicarMovimiento(INICIAL, "down");
+    expect(r.traza).toEqual({
+      movimientos: [
+        { desde: [0, 0], hasta: [3, 0] },
+        { desde: [2, 1], hasta: [3, 1] },
+        { desde: [0, 2], hasta: [3, 2] },
+      ],
+      fusiones: [],
+    });
+    comprobarInvariantes(r);
+  });
+
+  it("cambio=false → traza vacía", () => {
+    const estatico = [
+      [2, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
+    const r = aplicarMovimiento(estatico, "left");
+    expect(r.cambio).toBe(false);
+    expect(r.traza).toEqual({ movimientos: [], fusiones: [] });
+  });
+
+  it("dirección desconocida → traza vacía", () => {
+    const r = aplicarMovimiento(INICIAL, "diagonal");
+    expect(r.cambio).toBe(false);
+    expect(r.traza).toEqual({ movimientos: [], fusiones: [] });
+  });
+
+  it("no incluye pares con origen igual al destino", () => {
+    const r = aplicarMovimiento(INICIAL, "right");
+    for (const { desde, hasta } of r.traza.movimientos) {
+      expect(desde).not.toEqual(hasta);
+    }
+  });
+});
+
 describe("agregarFicha (spawn)", () => {
   it("en tablero completo no cambia nada y devuelve posicion null", () => {
     const lleno = [
@@ -375,5 +475,129 @@ describe("aplicarDeshacer", () => {
     }));
     expect(r.board).toEqual(TABLERO_ANTERIOR);
     expect(r.historial).toEqual([primero]);
+  });
+});
+
+describe("esPartidaValida", () => {
+  function partida(overrides = {}) {
+    return {
+      v: 1,
+      board: [
+        [2, 4, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+      ],
+      score: 100,
+      deshacerRestantes: 3,
+      bombasRestantes: 1,
+      victoriaAvisada: false,
+      historial: [
+        {
+          board: [[2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+          score: 60,
+        },
+      ],
+      ...overrides,
+    };
+  }
+
+  it("partida completa y bien formada → true", () => {
+    expect(esPartidaValida(partida())).toBe(true);
+  });
+
+  it("acepta historial vacío y victoria ya avisada", () => {
+    expect(esPartidaValida(partida({ historial: [], victoriaAvisada: true }))).toBe(true);
+  });
+
+  it("no objeto (null, undefined o primitivo) → false", () => {
+    expect(esPartidaValida(null)).toBe(false);
+    expect(esPartidaValida(undefined)).toBe(false);
+    expect(esPartidaValida("partida")).toBe(false);
+  });
+
+  it("v distinto de 1 → false", () => {
+    expect(esPartidaValida(partida({ v: 2 }))).toBe(false);
+    expect(esPartidaValida(partida({ v: 0 }))).toBe(false);
+  });
+
+  it("board que no es 4x4 → false", () => {
+    expect(esPartidaValida(partida({
+      board: [[2, 0, 0], [0, 0, 0], [0, 0, 0]],
+    }))).toBe(false);
+    expect(esPartidaValida(partida({
+      board: [[2, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0]],
+    }))).toBe(false);
+    expect(esPartidaValida(partida({ board: "tablero" }))).toBe(false);
+    expect(esPartidaValida(partida({ board: null }))).toBe(false);
+  });
+
+  it("board con strings o valores negativos → false", () => {
+    expect(esPartidaValida(partida({
+      board: [["2", 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+    }))).toBe(false);
+    expect(esPartidaValida(partida({
+      board: [[-2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+    }))).toBe(false);
+  });
+
+  it("score inválido (negativo, NaN o string) → false", () => {
+    expect(esPartidaValida(partida({ score: -1 }))).toBe(false);
+    expect(esPartidaValida(partida({ score: NaN }))).toBe(false);
+    expect(esPartidaValida(partida({ score: "100" }))).toBe(false);
+  });
+
+  it("contadores que no son enteros >= 0 → false", () => {
+    expect(esPartidaValida(partida({ deshacerRestantes: -1 }))).toBe(false);
+    expect(esPartidaValida(partida({ deshacerRestantes: 1.5 }))).toBe(false);
+    expect(esPartidaValida(partida({ bombasRestantes: -1 }))).toBe(false);
+    expect(esPartidaValida(partida({ bombasRestantes: "1" }))).toBe(false);
+  });
+
+  it("victoriaAvisada que no es booleano → false", () => {
+    expect(esPartidaValida(partida({ victoriaAvisada: "true" }))).toBe(false);
+    expect(esPartidaValida(partida({ victoriaAvisada: 1 }))).toBe(false);
+  });
+
+  it("historial corrupto → false", () => {
+    expect(esPartidaValida(partida({ historial: {} }))).toBe(false);
+    expect(esPartidaValida(partida({ historial: [null] }))).toBe(false);
+    // Entrada sin board:
+    expect(esPartidaValida(partida({ historial: [{ score: 60 }] }))).toBe(false);
+    // board que no es 4x4:
+    expect(esPartidaValida(partida({
+      historial: [{ board: [[2, 0, 0], [0, 0, 0], [0, 0, 0]], score: 60 }],
+    }))).toBe(false);
+    // board con strings:
+    expect(esPartidaValida(partida({
+      historial: [{
+        board: [["2", 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+        score: 60,
+      }],
+    }))).toBe(false);
+    // score que no es número:
+    expect(esPartidaValida(partida({
+      historial: [{
+        board: [[2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+        score: "60",
+      }],
+    }))).toBe(false);
+  });
+
+  it("nunca lanza aunque la entrada sea basura", () => {
+    const basuras = [
+      null,
+      undefined,
+      42,
+      "partida",
+      [],
+      () => {},
+      { v: 1 },
+      { ...partida(), board: null },
+      { ...partida(), historial: "no-array" },
+    ];
+    for (const basura of basuras) {
+      expect(() => esPartidaValida(basura)).not.toThrow();
+    }
   });
 });
