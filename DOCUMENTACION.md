@@ -92,7 +92,8 @@ archivos). Conclusiones clave:
 
 ### Fase 3 — Testing, lint, CI, a11y, docs
 
-- **Vitest + jsdom** (solo devDependencies). 4 archivos, **64 tests**:
+- **Vitest + jsdom** (solo devDependencies). 4 archivos, **64 tests** (recuento
+  actual en §5):
   | Archivo | Tests | Qué cubre |
   | --- | --- | --- |
   | `tests/game-core.test.js` | 39 | Fusión sin cadena, comprimir, 4 direcciones, game over, victoria, spawn, deshacer puro |
@@ -147,21 +148,26 @@ Fase 2, inherente a usar ESM sin bundler). Soluciones implementadas:
 | Sin bundler / sin frameworks | Principio del proyecto; ESM es nativo |
 | `file://` no soportado | Consecuencia de ESM; cubierto con `npm start` + aviso |
 | Tema claro duplicado en CSS | Evita FOUC antes de que JS fije `data-theme` |
-| Render reconstruye las 16 celdas | Irrelevante para el rendimiento (auditoría fase 4 descartada) |
+| `render()` **reconcilia** 16 slots (ya no reconstruye) | Identidad de nodos para animar con `transform`; **revoca** la fila previa "Render reconstruye las 16 celdas". La rampa `data-value`/`lenN` sigue en `.cell`: cero selectores migrados de `style.css` |
 | Sin focus-trap en diálogos | Tab debe llegar al botón de deshacer (está fuera del overlay) |
+| Animación **sin lock de entrada** (decisión 3) | Estado + DOM síncronos en `mover()`; la capa FX (`#fx-layer`) es posterior e interrumpible (`limpiarFx()` al inicio de cada ciclo). Nunca se difiere estado por animación: conserva los tests de flujo y markup (riesgo 1) |
+| Partida en curso en clave `partida2048` (decisión 6) | Clave SEPARADA de `stats2048` para no romper `expect(stats()).toBeNull()`; esquema v1 con `historial` y `victoriaAvisada`, validado por `esPartidaValida()`; **restauración automática sin diálogo** (un tercer `[role="dialog"]` rompería `markup.test.js`); guardado en `pagehide`/`visibilitychange`, borrado en `nuevaPartida()` y al acabar |
+| UN único interruptor `#fx-toggle` (decisión 8) | Sonido y háptica con un solo `role="switch"` ON por defecto; `stats2048.fxActivo` solo se escribe al pulsarlo; `prefers-reduced-motion` gobierna **solo** lo visual, no el feedback |
+| Overlay de fin diferido 260 ms (decisión 11) | `setTimeout` de ms fijos, **nunca** `transitionend`/`animationend` (no disparan en jsdom); el estado se aplica síncrono y el diálogo no tapa el slide/pop |
+| Háptica con feature-detect (decisión 12) | `navigator.vibrate` no existe en iOS/Firefox: mejora progresiva (sonido + feedback visual) documentada como **límite de plataforma**, no como bug |
 
 ## 5. Comandos
 
 ```bash
 npm install     # solo devDependencies
 npm start       # servidor local → http://localhost:8000
-npm test        # 64 tests
+npm test        # 142 tests (9 ficheros)
 npm run lint    # ESLint
 ```
 
 Orden recomendado antes de commit: `npm run lint` → `npm test`.
 
-## 6. Estado actual de git — ✅ **TODO COMMITEADO** (2026-10-03)
+## 6. Estado actual de git — ✅ **TODO COMMITEADO** (auditoría 2026-10-03 · Bloque 1 2026-10-04)
 
 Se aplicó el plan de commits atómicos con el skill `git-commit-planner`.
 Sobre `a0dee4a`, los 7 commits del plan son (a ellos se suman los de
@@ -190,16 +196,21 @@ Dos incidencias del proceso, documentadas para no repetirlas:
 
 Estado:
 
-- Working tree limpio; `.opencode/` está en `.gitignore` (configuración local
-  del agente, no del proyecto).
-- **⚠️ SIN PUSH:** `origin/main` está por detrás; todos los commits de esta
-  auditoría siguen locales (conteo: `git rev-list --count origin/main..HEAD`).
+- Working tree limpio tras los commits del **Bloque 1 — Jugabilidad** (2026-10-04:
+  animación con identidad de nodos, puntos flotantes, sonido/háptica con
+  interruptor y partida en curso; 64 → 142 tests). Ver `git log` desde `3837b55`.
+- `.opencode/` está en `.gitignore` (configuración local del agente, no del
+  proyecto): el estado del pipeline multiagente vive en `.opencode/workflow/`
+  solo en disco.
+- **⚠️ SIN PUSH:** `origin/main` está por detrás; todos los commits de la
+  auditoría y del Bloque 1 siguen locales (conteo: `git rev-list --count origin/main..HEAD`).
   Ver §8.5.
 - CI funcionará en el primer push (ya existe `package-lock.json`).
 
 ## 7. Validación final
 
-- **Tests** → ✅ 64/64
+- **Tests** → ✅ 64/64 (validación de esa fase; recuento actual: 142 en 9
+  ficheros, ver §5 y §10)
 - **Lint** → ✅ 0 problemas
 - **Build** → No aplica (no hay build de producción, por diseño)
 - **Chrome headless (HTTP)** → ✅ arranca con 16 celdas/2 fichas
@@ -232,34 +243,58 @@ Estado:
 index.html ──<script type="module">──► game.js (UI: entradas, render,
                                           overlays, power-ups, storage)
                                             │ importa
-                                            ▼
-                                       game-core.js (puro: datos → datos)
-                                            ▲
-                                            │ importa
-                              tests (Vitest: núcleo en nodo, UI en jsdom)
+                          ┌─────────────────┴─────────────────┐
+                          ▼                                   ▼
+                 game-fx.js (efectos y feedback:      game-core.js (puro: datos → datos;
+                 slide/pop/fantasmas y flotantes +N   traza de animación y
+                 en #fx-layer; sonido y háptica)      esPartidaValida)
+                          │                                   ▲
+                          └────────────── importa ────────────┘
+
+tests/ (Vitest: núcleo en nodo, UI en jsdom) — 142 tests en 9 ficheros
+  originales: game-core · flujo · markup · persistencia
+  Bloque 1:   animacion · feedback · restauracion · arranque · integracion
+  setup.js (fixture DOM + matchMedia stub + Math.random = 0)
 scripts/servidor.mjs  → npm start (dev, sin dependencias)
 .github/workflows/ci.yml → lint + tests en push/PR
 ```
 
-## 10. Roadmap de mejoras propuestas (no implementadas)
+## 10. Roadmap de mejoras propuestas
 
 > Propuesta de 2026-10-03 para que el juego "deje de ser simple" y se convierta
-> en una app como tal. **Nada de esto está hecho**: es una lista para decidir
-> por dónde seguir. El primer paso (ordenar el historial en commits atómicos,
-> el "Bloque 4" original) ya está completo; después el orden sugerido era
-> **Bloque 1 → PWA (Bloque 3) → Bloque 2**.
+> en una app como tal. **El Bloque 1 está HECHO** (2026-10-04, detalle más
+> abajo); los Bloques 2 y 3 siguen sin tocarse. El primer paso (ordenar el
+> historial en commits atómicos, el "Bloque 4" original) ya estaba completo;
+> el orden sugerido era **Bloque 1 → PWA (Bloque 3) → Bloque 2**, así que el
+> siguiente en la cola es el Bloque 3 (PWA) o el 2.
 
-### Bloque 1 — Se siente jugable (impacto alto, esfuerzo medio)
+### Bloque 1 — Se siente jugable (impacto alto, esfuerzo medio) — ✅ HECHO (2026-10-04)
 
-- **Animación real**: slide de fichas + pop de fusión + spawn, manteniendo
-  identidad de nodos en vez de recrearlos (FLIP o `transform`).
-  *Ojo: hoy `render()` reconstruye las 16 celdas (§ "Algoritmo intacto"); esto
-  obliga a cambiar esa decisión y a actualizar `AGENTS.md`.*
-- **Puntos flotantes** (`+8` subiendo sobre la celda fusionada).
-- **Háptica en móvil** (`navigator.vibrate` en fusión) y **sonido con Web Audio
-  API** (tonos generados, sin archivos de audio) con interruptor on/off.
-- **Guardar partida en curso** → recargas y sigues donde estabas (hoy solo se
-  persisten récord y tema).
+- **Animación real** ✅ — slide + pop de fusión + spawn con identidad de nodos
+  (`.tile` persistente + `transform`), **sin recrear el DOM**: `render()` pasó a
+  **reconciliar** 16 slots, se revoca "render reconstruye las 16 celdas" y
+  `AGENTS.md` quedó actualizado. La animación es una capa posterior e
+  interrumpible **sin lock de entrada** (`limpiarFx()` al inicio de cada
+  ciclo) y vive en `#fx-layer`, **fuera de `#board`**. Rama
+  `prefers-reduced-motion` en CSS y guard en JS.
+- **Puntos flotantes** ✅ — `+N` subiendo y desvaneciéndose sobre la celda
+  fusionada (un nodo por fusión), siempre en `#fx-layer` y nunca en `#board`.
+- **Háptica + sonido** ✅ — `navigator.vibrate` SOLO en fusión (feature-detect)
+  y tonos Web Audio generados (sin archivos), con **un único interruptor
+  `#fx-toggle`** ON por defecto persistido en `stats2048.fxActivo` (escrito
+  solo al pulsarlo). *Matiz de plataforma:* `navigator.vibrate` existe en
+  **Chromium/Android**; en iOS y Firefox queda sonido + feedback visual
+  (mejora progresiva, no bug). **Sin PWA**: manifest y service worker siguen
+  pendientes en el Bloque 3.
+- **Guardar/restaurar partida en curso** ✅ — clave `partida2048` **separada**
+  de `stats2048` con tablero, puntos, contadores, `victoriaAvisada` e
+  `historial`; se guarda en cada turno, en `pagehide`/`visibilitychange` y se
+  restaura sola al recargar (validada por `esPartidaValida()`, **sin
+  diálogo**). Se borra al empezar partida nueva y al acabar la partida.
+
+> Validación del Bloque 1: `npm run lint` → 0 y `npm test` → **142 tests en
+> 9 ficheros** (los 64 originales intactos + traza, `esPartidaValida`,
+> animación, feedback, restauración, arranque e integración).
 
 ### Bloque 2 — Profundidad (retención)
 
