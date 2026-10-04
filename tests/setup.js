@@ -28,9 +28,13 @@ if (typeof document !== "undefined") {
         <button class="btn ghost icon-btn" id="bomb">
           <span class="count" id="bomb-count">1</span>
         </button>
+        <button class="btn ghost fx-toggle" id="fx-toggle" role="switch" aria-checked="true">
+          <span aria-hidden="true">🔊</span> Sonido
+        </button>
       </div>
       <div class="board-wrap">
         <div id="board" class="board" tabindex="-1"></div>
+        <div id="fx-layer" aria-hidden="true"></div>
         <div class="overlay" id="overlay" hidden role="dialog" aria-modal="true"
              aria-labelledby="overlay-title">
           <div class="overlay-card">

@@ -55,10 +55,23 @@
         </svg>
         <span class="count" id="bomb-count">1</span>
       </button>
+
+      <!-- Interruptor de feedback (sonido + háptica): role="switch" con
+           aria-checked inicializado por game.js desde stats2048.fxActivo
+           (ON por defecto). El estado solo se ESCRIBE al pulsarlo. -->
+      <button class="btn ghost fx-toggle" id="fx-toggle" role="switch" aria-checked="true"
+              title="Activar o desactivar el sonido y la vibración">
+        <span aria-hidden="true">🔊</span> Sonido
+      </button>
     </div>
 
     <div class="board-wrap">
       <div id="board" class="board" tabindex="-1"></div>
+
+      <!-- Capa de efectos visuales (slide, fantasmas, flotantes): decorativa,
+           aria-hidden y sin eventos. Vive FUERA de #board y ANTES que el
+           overlay, que sigue pintando encima por orden de DOM. -->
+      <div id="fx-layer" aria-hidden="true"></div>
 
       <!-- Overlay de fin de partida / victoria (oculto por defecto) -->
       <div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlay-title">
@@ -84,6 +97,9 @@
             <ul>
               <li><span class="nov-icono">↩︎</span> Puedes <strong>deshacer</strong> tus movimientos (3 usos).</li>
               <li><span class="nov-icono">💣</span> Tienes una <strong>bomba</strong> para eliminar una ficha.</li>
+              <li><span class="nov-icono">✨</span> Las fichas <strong>se animan</strong> al moverse y los puntos <strong>+N flotan</strong> sobre la fusión.</li>
+              <li><span class="nov-icono">🔊</span> <strong>Sonido y vibración</strong> al fusionar: actívalos con el interruptor <em>Sonido</em>.</li>
+              <li><span class="nov-icono">💾</span> Tu <strong>partida en curso se guarda sola</strong> y vuelve al recargar.</li>
             </ul>
           </div>
           <div class="overlay-actions">

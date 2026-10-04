@@ -164,6 +164,18 @@ h1 {
 .icon-btn.armed { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 .icon-btn.theme-toggle { padding: 9px 11px; }
 
+/* Interruptor de feedback (sonido + háptica): objetivo táctil >= 44 px
+   (WCAG 2.5.5) y estado visible del switch, que role="switch" no pinta
+   por sí solo. aria-checked lo gestiona game.js. */
+.fx-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.fx-toggle[aria-checked="false"] { opacity: 0.6; }
+
 /* ---- Tablero ---- */
 .board-wrap { position: relative; }
 
@@ -191,6 +203,15 @@ h1 {
 }
 .cell.len3 { font-size: clamp(1.1rem, 6.5vw, 2rem); }
 .cell.len4 { font-size: clamp(0.9rem, 5vw, 1.6rem); }
+
+/* Ficha persistente dentro de cada .cell (identidad de nodos). Hereda el
+   aspecto de su slot: la rampa data-value sigue EN .cell, así que cero
+   selectores migrados y el número se pinta sobre el mismo color. */
+.tile {
+  background: inherit;
+  color: inherit;
+  border-radius: inherit;
+}
 
 /* ---- Rampa de temperatura por valor (igual en ambos temas) ---- */
 .cell[data-value="2"]    { background: #2f3b52; color: #cdd6e6; }
@@ -221,6 +242,66 @@ h1 {
   to   { transform: scale(1);   opacity: 1; }
 }
 .cell.nueva { animation: aparece 0.16s ease-out; }
+
+/* ---- Capa de efectos visuales (slide, fantasmas, flotantes) ----
+   Fuera de #board y ANTES que #overlay en el DOM: los overlays siguen
+   pintando encima por orden de capa. Sin z-index (decisión del plan) y sin
+   eventos: #board.children sigue siendo exactamente 16 .cell. */
+#fx-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: var(--radius);
+}
+
+/* Fantasma de fusión: una .cell clonada, ya posicionada con su rect por JS
+   (left/top/width/height inline). No es interactiva.
+   position:absolute es OBLIGATORIO: sin él left/top inline no hacen nada y
+   los fantasmas se apilarían en la esquina de #fx-layer. #fx-layer es
+   position:absolute (ver arriba), así que ÉL es el containing block de esos
+   left/top, exactamente lo que resta game-fx.js (rect − rectCapa). */
+.cell.fx-fantasma {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ---- Pop de fusión: la celda destino late DESPUÉS del slide ----
+   El animation-delay cae con DURACION_SLIDE_MS (120 ms) de game-fx.js. */
+@keyframes fusiona {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+.cell.fusionando {
+  animation: fusiona 0.18s ease-out 0.12s;
+}
+
+/* ---- Puntos flotantes +N (sobre la celda fusionada) ----
+   Centrados con translate(-50%,-50%) sobre el left/top que calcula JS;
+   suben y se desvanecen en 0.7 s (game-fx.js los retira con setTimeout).
+   El overflow:hidden de #fx-layer los mantiene dentro del tablero. */
+@keyframes flotante-sube {
+  from { transform: translate(-50%, -50%); opacity: 1; }
+  to   { transform: translate(-50%, calc(-50% - 1.6em)); opacity: 0; }
+}
+@keyframes flotante-desvanece {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.fx-flotante {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-weight: 700;
+  font-size: clamp(1rem, 6vw, 1.6rem);
+  color: var(--accent);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation: flotante-sube 0.7s ease-out forwards;
+}
+/* prefers-reduced-motion: solo desvanece (la clase la pone el JS y la rama
+   de style.css de abajo lo refuerza). */
+.fx-flotante.fx-reducido { animation-name: flotante-desvanece; }
 
 /* ---- Modo bomba ---- */
 .board.modo-bomba { outline: 2px solid var(--accent); outline-offset: 4px; }
@@ -254,6 +335,10 @@ h1 {
   text-align: center;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  /* La lista de novedades creció (Bloque 1): en pantallas bajas la tarjeta
+     no puede desbordar el tablero (body tiene overflow:hidden y se recortaría). */
+  max-height: 100%;
+  overflow-y: auto;
 }
 .welcome-overlay.cerrando .welcome-card { animation: popOut 0.18s ease-in forwards; }
 .welcome-title { font-size: 1.7rem; font-weight: 700; margin-bottom: 12px; }
@@ -319,6 +404,8 @@ h1 {
 /* ---- Accesibilidad: menos movimiento ---- */
 @media (prefers-reduced-motion: reduce) {
   .cell.nueva { animation: none; }
+  .cell.fusionando { animation: none; } /* el JS tampoco añade la clase */
+  .fx-flotante { animation: flotante-desvanece 0.7s linear forwards; } /* solo desvanece */
   .btn { transition: none; }
   .welcome-card,
   .welcome-overlay.cerrando .welcome-card { animation: none; }
