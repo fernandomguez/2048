@@ -161,8 +161,10 @@ Fase 2, inherente a usar ESM sin bundler). Soluciones implementadas:
 ```bash
 npm install     # solo devDependencies
 npm start       # servidor local → http://localhost:8000
-npm test        # 142 tests (9 ficheros)
+npm test        # 167 tests (11 ficheros)
 npm run lint    # ESLint
+npm run iconos  # regenera los 2 PNG de icons/ (SOLO desarrollo: no forma
+                # parte de npm test ni de la CI; los binarios se commitean)
 ```
 
 Orden recomendado antes de commit: `npm run lint` → `npm test`.
@@ -203,14 +205,16 @@ Estado:
   proyecto): el estado del pipeline multiagente vive en `.opencode/workflow/`
   solo en disco.
 - **⚠️ SIN PUSH:** `origin/main` está por detrás; todos los commits de la
-  auditoría y del Bloque 1 siguen locales (conteo: `git rev-list --count origin/main..HEAD`).
-  Ver §8.5.
+  auditoría, del Bloque 1 y del **Bloque 3 (Tanda B)** siguen locales (conteo:
+  `git rev-list --count origin/main..HEAD`). **Esta fase tampoco hace push**
+  (decisión D12 del plan del Bloque 3): el push y la activación del CI los
+  decide el usuario al final. Ver §8.5.
 - CI funcionará en el primer push (ya existe `package-lock.json`).
 
 ## 7. Validación final
 
-- **Tests** → ✅ 64/64 (validación de esa fase; recuento actual: 142 en 9
-  ficheros, ver §5 y §10)
+- **Tests** → ✅ 64/64 (validación de esa fase; recuento actual: **167 en 11
+  ficheros**, ver §5 y §10)
 - **Lint** → ✅ 0 problemas
 - **Build** → No aplica (no hay build de producción, por diseño)
 - **Chrome headless (HTTP)** → ✅ arranca con 16 celdas/2 fichas
@@ -220,11 +224,16 @@ Estado:
   de escritorio conectado; los cubre `tests/flujo.test.js` + `tests/markup.test.js`
   (jsdom con el markup real). Conviene un paseo manual: bienvenida, flechas,
   swipe, deshacer tras game over, bomba, nueva partida, récord y tema.
+- **Verificación manual del Bloque 3 en Chrome** → ⏳ **pendiente (Task 12)**:
+  la CI no cubre service worker, canvas ni Web Share. Checklist en §10.
 
 ## 8. Pendientes conocidos (y por qué se dejaron)
 
-1. **`og:image`** — no hay imagen en el proyecto; si se quiere, subir una
-   captura y usar URL absoluta. No se inventó una.
+1. **`og:image`** — ✅ **HECHO (Bloque 3)**: `icons/og-image-1200x630.png`
+   (1200×630, generado con el mismo código de dibujo) y `og:url`/`og:image`
+   están en `index.html`, pero con **ruta relativa**: antes de publicar hay que
+   completar la **URL absoluta** al elegir el hosting (decisión D1); idem para
+   `start_url`/`scope` del manifest.
 2. **Duplicación del tema claro en CSS (2 ramas)** — P3; una rama protege del
    FOUC. Solo fusionar si se encuentra una solución sin FOUC.
 3. **`touchmove` con `preventDefault` global** (P3) — bloquea también el zoom;
@@ -241,7 +250,8 @@ Estado:
 
 ```text
 index.html ──<script type="module">──► game.js (UI: entradas, render,
-                                          overlays, power-ups, storage)
+                                          overlays, power-ups, storage,
+                                          compartir e instalación)
                                             │ importa
                           ┌─────────────────┴─────────────────┐
                           ▼                                   ▼
@@ -251,9 +261,24 @@ index.html ──<script type="module">──► game.js (UI: entradas, render,
                           │                                   ▲
                           └────────────── importa ────────────┘
 
-tests/ (Vitest: núcleo en nodo, UI en jsdom) — 142 tests en 9 ficheros
+game-share.js  → captura para compartir: RAMPA, PALETAS, MEDIDAS_CAPTURA y
+                 dibujarCaptura (canvas 2D SIEMPRE desconectado); lo importa
+                 game.js, que exporta obtenerSnapshot(), compartir() y
+                 DURACION_TOAST
+manifest.json  → PWA: start_url/scope + iconos (SVG en icons/, PNG 180 y
+                 og 1200×630)
+sw.js          → service worker 2048-v1: network-first para documento, JS y
+                 CSS; cache-first para iconos, manifest e imágenes; sin
+                 skipWaiting ni recarga automática (clients.claim() sí)
+icons/         → 2048.svg · 2048-maskable.svg · apple-touch-icon-180.png
+                 · og-image-1200x630.png  (los 2 PNG, commiteados)
+scripts/generar-iconos.mjs + scripts/lib/ctx-software.mjs
+                 → npm run iconos (SOLO desarrollo, sin dependencias)
+
+tests/ (Vitest: núcleo en nodo, UI en jsdom) — 167 tests en 11 ficheros
   originales: game-core · flujo · markup · persistencia
   Bloque 1:   animacion · feedback · restauracion · arranque · integracion
+  Bloque 3:   pwa · share
   setup.js (fixture DOM + matchMedia stub + Math.random = 0)
 scripts/servidor.mjs  → npm start (dev, sin dependencias)
 .github/workflows/ci.yml → lint + tests en push/PR
@@ -262,11 +287,11 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 ## 10. Roadmap de mejoras propuestas
 
 > Propuesta de 2026-10-03 para que el juego "deje de ser simple" y se convierta
-> en una app como tal. **El Bloque 1 está HECHO** (2026-10-04, detalle más
-> abajo); los Bloques 2 y 3 siguen sin tocarse. El primer paso (ordenar el
-> historial en commits atómicos, el "Bloque 4" original) ya estaba completo;
-> el orden sugerido era **Bloque 1 → PWA (Bloque 3) → Bloque 2**, así que el
-> siguiente en la cola es el Bloque 3 (PWA) o el 2.
+> en una app como tal. **El Bloque 1 está HECHO** (2026-10-04) y **el Bloque 3
+> (PWA) también** (2026-10-04, detalle más abajo); **solo queda el Bloque 2**
+> sin tocar. El primer paso (ordenar el historial en commits atómicos, el
+> "Bloque 4" original) ya estaba completo; el orden sugerido era **Bloque 1 →
+> PWA (Bloque 3) → Bloque 2**, así que el siguiente en la cola es el 2.
 
 ### Bloque 1 — Se siente jugable (impacto alto, esfuerzo medio) — ✅ HECHO (2026-10-04)
 
@@ -284,8 +309,8 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
   `#fx-toggle`** ON por defecto persistido en `stats2048.fxActivo` (escrito
   solo al pulsarlo). *Matiz de plataforma:* `navigator.vibrate` existe en
   **Chromium/Android**; en iOS y Firefox queda sonido + feedback visual
-  (mejora progresiva, no bug). **Sin PWA**: manifest y service worker siguen
-  pendientes en el Bloque 3.
+  (mejora progresiva, no bug). *Manifest y service worker:* se quedaron para
+  el Bloque 3, **ya HECHO** (más abajo).
 - **Guardar/restaurar partida en curso** ✅ — clave `partida2048` **separada**
   de `stats2048` con tablero, puntos, contadores, `victoriaAvisada` e
   `historial`; se guarda en cada turno, en `pagehide`/`visibilitychange` y se
@@ -308,11 +333,58 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 - **Progresión de power-ups**: ganar deshacer/bomba por hitos (llegar a 512,
   etc.) en vez de números fijos.
 
-### Bloque 3 — Que sea "una app" literalmente
+### Bloque 3 — Que sea "una app" literalmente — ✅ HECHO (2026-10-04)
 
-- **PWA**: manifest + service worker offline + iconos 192/512 + `theme-color`.
-  Se instala en el móvil y funciona sin conexión, **sin build**.
-- **Compartir tablero**: Web Share API + captura en canvas (de paso cubre el
-  `og:image` de §8.1).
-- ⚠️ **Leaderboard online**: **fuera de la recomendación**, porque rompe el
-  "estático sin dependencias" y exige backend.
+Alcance P0..P3 de `01-analysis.md`, implementado en 11 tasks
+(`.opencode/workflow/outputs/02-plan.md`); **sin dependencias nuevas, sin
+build, sin backend**.
+
+- **P0 — Instalable y offline** ✅
+  - `manifest.json` con `start_url`/`scope` relativos, `theme-color` (estático
+    en el head y dinámico en `aplicarTema`) e iconos: **SVG `sizes: "any"`**
+    (2048.svg + 2048-maskable.svg) según D6 — no hay PNG 192/512.
+  - `apple-touch-icon` 180 PNG + `<link rel=icon>` (fichero PNG real,
+    generado).
+  - `sw.js` (`2048-v1`): precache de los 12 recursos, **network-first para
+    documento, JS y CSS** con fallback a caché y cache-first para iconos,
+    manifest e imágenes; sin Google Fonts en caché (D4), **sin `skipWaiting()`
+    ni recarga automática** (G7; `clients.claim()` sí toma el control de la
+    primera carga); registro con feature-detect en `game.js` (D8) y guard
+    `file://`. Cómo apagarlo en DevTools: Application → Service Workers →
+    Unregister, o "Bypass for network".
+  - Override de ESLint para `sw.js` (`self`, `caches`).
+- **P1 — Compartir tablero** ✅ — `obtenerSnapshot()` + captura en canvas
+  **siempre desconectado** (guards: sin contexto 2D, sin `toBlob`, DPR capado
+  a ×2, `document.fonts.ready` con carrera de 150 ms), botón "Compartir" en
+  `.actions`, cadena `canShare({files}) → share({files}) → share(texto) →
+  descarga → clipboard → mensaje`, toast `role="status"` con regla `[hidden]`
+  explícita y `AbortError` silenciado.
+- **P2 — Coherencia y cierre** ✅ — segunda entrada de compartir en los
+  overlays de fin (el botón va **el último**), instrucción iOS **estática** en
+  `#welcome` (D7, sin sniffing de UA), `AGENTS.md`/`DOCUMENTACION.md`
+  actualizados y tests nuevos **solo en ficheros añadidos**
+  (`tests/pwa.test.js`, `tests/share.test.js`).
+- **P3 — `og:image`** ✅ — `icons/og-image-1200x630.png` (1200×630, generado
+  con el mismo código de dibujo) con `og:image` + `width/height/type/alt` y
+  **ruta relativa**: la URL absoluta se completa al elegir hosting (D1,
+  §8.1).
+- **Fuera de alcance confirmado** — leaderboard online (backend prohibido),
+  `game-core.js` intacto, cero claves nuevas de persistencia (compartir **no
+  escribe** en `localStorage`), cero dependencias, cero build, **sin banner ni
+  chip de offline** (D2) y sin cachear fuentes (D4).
+
+**Decisiones del Bloque 3 (no reabiertas):** D1 `og:image` PNG estático con
+ruta relativa · D2 offline silencioso · D3 captura con el tema activo · D4 sin
+Google Fonts en caché · D5 SW network-first + DevTools Unregister · D6 iconos
+192/512 como SVG `sizes: "any"` · D7 `#install` oculto hasta
+`beforeinstallprompt` + instrucción iOS estática · D8 registro del SW en
+`game.js` (no un `<script>` clásico) · D9 dibujo en `game-share.js` (Node lo
+reutiliza para los iconos) · D10 tests nuevos en ficheros nuevos · D11 sí se
+documenta (`AGENTS.md`/`DOCUMENTACION.md`) · D12 **sin push** en esta fase.
+
+> Validación del Bloque 3: `npm run lint` → **0** y `npm test` → **167 tests
+> en 11 ficheros** (los 142 del Bloque 1 intactos + 14 de `pwa` + 11 de
+> `share`). **⏳ Pendiente:** verificación manual en Chrome (Task 12) — la CI
+> no cubre service worker, canvas ni Web Share; checklist en `02-plan.md`
+> (manifest, SW `activated`, caché `2048-v1`, offline, captura, Web Share e
+> instalación).

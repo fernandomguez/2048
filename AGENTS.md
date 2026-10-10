@@ -11,9 +11,11 @@ Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funcio
 - `index.html` — marcado, meta tags y accesibilidad; carga `game.js` como `<script type="module">`.
 - `game-core.js` — lógica pura del juego: recibe datos y devuelve datos. **Sin DOM,
   sin localStorage, sin eventos.** Toda regla nueva va aquí.
-- `game.js` — capa UI: entradas, render, overlays, power-ups, persistencia.
-  Importa `game-core.js` y `game-fx.js` y exporta los comandos (`mover`,
-  `deshacer`, `toggleBomba`, `nuevaPartida`, `mostrarVictoria`, `mostrarGameOver`,
+- `game.js` — capa UI: entradas, render, overlays, power-ups, persistencia,
+  compartir (`obtenerSnapshot()`, `compartir()`, `DURACION_TOAST`) e
+  instalación (evento `beforeinstallprompt`). Importa `game-core.js`,
+  `game-fx.js` y `game-share.js` y exporta los comandos (`mover`, `deshacer`,
+  `toggleBomba`, `nuevaPartida`, `mostrarVictoria`, `mostrarGameOver`,
   `restaurarPartida`) que usan los tests de flujo.
 - `game-fx.js` — capa de efectos y feedback: slide/pop/fantasmas, puntos
   flotantes `+N`, sonido Web Audio y háptica. Recibe la `traza` de
@@ -22,6 +24,21 @@ Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funcio
   slots ya existentes — el pop añade la clase `.fusionando` a la `.cell`
   destino y el slide escribe `transform`/`transition` inline en su `.tile` —
   sin crear nunca un nodo nuevo ahí. Sin estado del juego.
+- `game-share.js` — dibujo de la captura: `RAMPA`, `PALETAS`, `MEDIDAS_CAPTURA`
+  y `dibujarCaptura()` (canvas 2D puro, **sin DOM ni localStorage**). `RAMPA` es
+  la única rampa del proyecto: `tests/share.test.js` la contrasta con la de
+  `style.css` para que no haya deriva entre CSS y captura.
+- `manifest.json` — PWA: `start_url`/`scope` relativos y **2 iconos SVG**
+  (`sizes: "any"`: `2048.svg` + `2048-maskable.svg`); no hay PNG 192/512
+  (decisión D6) y el `og:image` 1200×630 vive en `icons/`, no en el manifest.
+- `sw.js` — service worker `2048-v1`: **network-first** para documento, JS y
+  CSS; **cache-first** para iconos, manifest e imágenes (ver "Hechos no
+  obvios").
+- `icons/` — 4 ficheros commiteados: `2048.svg`, `2048-maskable.svg` (manifest)
+  y los PNG `apple-touch-icon-180.png` / `og-image-1200x630.png` (D1/D6).
+- `scripts/generar-iconos.mjs` + `scripts/lib/ctx-software.mjs` — generan esos
+  PNG **sin dependencias** (zlib nativo); solo se ejecutan a mano con
+  `npm run iconos` (nunca en test ni en CI).
 - `style.css` — temas y layout.
 
 ## Comandos
@@ -32,6 +49,8 @@ npm test        # todos los tests (Vitest)
 npm run lint    # ESLint
 npm start       # servidor estático propio (scripts/servidor.mjs, sin deps) → http://localhost:8000
                 # alternativas: python -m http.server 8000 · npx serve .
+npm run iconos  # regenera icons/ desde scripts/generar-iconos.mjs (SOLO desarrollo:
+                # NO corre en test ni en CI; los PNG ya están commiteados)
 ```
 
 Orden recomendado antes de commit: `npm run lint` → `npm test`.
@@ -59,11 +78,23 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
   `#board` siempre, FX fuera del tablero, claves aisladas, guards sin
   `AudioContext`/`vibrate`/`element.animate`, `prefers-reduced-motion` y el
   ciclo completo mover → deshacer → nueva partida → restaurar.
+- `tests/pwa.test.js` — PWA (entorno node): `manifest.json`, `sw.js`
+  (precache, estrategias, `clients.claim()`, sin `skipWaiting`/`reload`),
+  `index.html` (meta/manifest), `game.js` (registro del SW), iconos PNG reales
+  (firma e IHDR), reglas CSS de `.icon-btn[hidden]`/`.tap-44`/`.toast[hidden]`,
+  `eslint.config.js` (override de `sw.js`) y `package.json`/`ci.yml` (sin
+  dependencias nuevas en CI).
+- `tests/share.test.js` — compartir (entorno jsdom, **cabecera
+  `// @vitest-environment jsdom`**): snapshot sin escrituras, cadena de
+  fallback de `compartir()` sin Web Share (2 diálogos, sin `role="dialog"` de
+  más), canvas desconectado, toast con fake timers, `AbortError` sin descarga,
+  `beforeinstallprompt`, anti-deriva `RAMPA`↔`style.css`, `dibujarCaptura()`
+  con un ctx stub y el botón "Compartir" **segundo** en los overlays de fin.
 - `tests/setup.js` crea el DOM de arranque y **mockea `Math.random` a 0**: en tests
   de UI el tablero inicial es siempre `[[2,2,0,0], ...]` y `mover("left")` produce
   `[[4,2,0,0], ...]` con 4 puntos (2 celdas: la fusión resta una y el spawn añade otra).
 
-Total: **142 tests en 9 ficheros** (`npm test` debe dar todo en verde).
+Total: **167 tests en 11 ficheros** (`npm test` debe dar todo en verde).
 
 ## Convenciones del repo
 
@@ -153,3 +184,44 @@ Total: **142 tests en 9 ficheros** (`npm test` debe dar todo en verde).
   representación DOM: `render()` **ya no reconstruye** las 16 celdas, las
   reconcilia con sus `.tile` persistentes (ver arriba) y la animación vive en
   `#fx-layer`, una capa aparte.
+- **Service worker `sw.js` (`2048-v1`)**: registro **clásico** en `game.js`
+  (`navigator.serviceWorker.register("./sw.js")`, sin `await` de activación ni
+  mensajes). `fetch` **network-first para documento, JS y CSS** (la red manda
+  en desarrollo; si falla, caché → `./index.html`) y **cache-first para
+  iconos, manifest e imágenes**. **Sin `skipWaiting()`, pero SÍ con
+  `clients.claim()`** en `activate` (el SW toma el control de la primera
+  carga, que nace sin controlar; no hay que recargar), y **JAMÁS
+  `location.reload()`**: una actualización espera a que se cierren todas las
+  pestañas. Si hay que forzar recarga en local: DevTools →
+  Application → Service Workers → Unregister, o checkbox "Bypass for network".
+  `sw.js` tiene override de ESLint en `eslint.config.js` (usa `self`/`caches`).
+- **La captura de compartir va en un `<canvas>` SIEMPRE desconectado**
+  (`document.createElement` nunca se appendea). Guards en orden:
+  `getContext("2d") === null` (jsdom) → `typeof toBlob !== "function"` →
+  DPR capado a ×2 → `document.fonts?.ready` con carrera de 150 ms → dibujo →
+  `toBlob`. **`crearCaptura()` NO está exportada** (la captura del test 3 se
+  hace espiando `document.createElement`); solo se exportan `obtenerSnapshot()`
+  y `compartir()`.
+- **`compartir()` nunca lanza y jamás escribe en `localStorage`**: cadena
+  `canShare({files}) → share({files}) → share({title,text,url}) → descarga
+  (ObjectURL + <a download> en `document.body`) → clipboard → mensaje "Este
+  navegador no permite compartir"`. **`AbortError` ⇒ `return` silencioso** (el
+  usuario canceló el sheet: ni toast ni descarga). El toast usa
+  `hidden=false` ANTES de escribir y `clearTimeout` previo (`DURACION_TOAST =
+  3000`, exportado para que el test use el valor real): **nunca**
+  `transitionend`/`animationend`.
+- **`#share`, `#install` y `#status` existen en `index.html` Y en
+  `tests/setup.js`** (el setup duplica el markup; si añades un id nuevo,
+  añádelo en ambos). `#install` arranca `hidden` y solo se muestra con
+  `beforeinstallprompt` (que hace `preventDefault()`, sin escrituras).
+- **`RAMPA` es única**: `game-share.js` la exporta y `style.css` la declara en
+  los selectores `.cell[data-value="…"]`; `share.test.js` las contrasta línea
+  a línea. Si cambias un color en CSS, cámbialo también en `game-share.js` (o
+  viceversa).
+- **Botones de overlay**: `mostrarVictoria()`/`mostrarGameOver()` reciben los
+  botones como array y el de **"Compartir" va SIEMPRE el último** (contrato
+  testeado); sigue habiendo exactamente **dos** `role="dialog"` en la página.
+- **`npm run iconos` es de desarrollo**: `scripts/generar-iconos.mjs` usa
+  `scripts/lib/ctx-software.mjs` (zlib nativo) y **no corre en test ni en CI**;
+  los PNG de `icons/` están commiteados (el test `pwa` valida firma e IHDR de
+  los reales).
