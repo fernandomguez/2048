@@ -20,4 +20,14 @@ export default [
       globals: { ...globals.browser, ...globals.node },
     },
   },
+  {
+    // Service worker (sw.js): globals del entorno SW (self, clients,
+    // caches, skipWaiting, registration). Se declara COMPLETO a propósito:
+    // si un bloque posterior sustituye `globals` en vez de fusionarlo, no
+    // se pierde `browser`. Sin este bloque, sw.js pone lint (y la CI) roja.
+    files: ["sw.js"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.serviceworker },
+    },
+  },
 ];

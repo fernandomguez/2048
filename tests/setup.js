@@ -31,6 +31,12 @@ if (typeof document !== "undefined") {
         <button class="btn ghost fx-toggle" id="fx-toggle" role="switch" aria-checked="true">
           <span aria-hidden="true">🔊</span> Sonido
         </button>
+        <button class="btn ghost icon-btn tap-44" id="install" hidden aria-label="Instalar la aplicación">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
+        </button>
+        <button class="btn ghost icon-btn tap-44" id="share" aria-label="Compartir tablero">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
+        </button>
       </div>
       <div class="board-wrap">
         <div id="board" class="board" tabindex="-1"></div>
@@ -53,6 +59,7 @@ if (typeof document !== "undefined") {
           </div>
         </div>
       </div>
+      <div class="toast" id="status" role="status" aria-live="polite" aria-atomic="true" hidden></div>
     </main>
   `;
 

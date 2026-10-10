@@ -1,0 +1,25 @@
+{
+  "name": "2048",
+  "short_name": "2048",
+  "description": "2048 en el navegador: desliza las fichas, fusiona números y llega a la ficha 2048. Con tema claro/oscuro, deshacer y bomba. JavaScript vanilla, sin dependencias.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14171c",
+  "theme_color": "#14171c",
+  "icons": [
+    {
+      "src": "icons/2048.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/2048-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

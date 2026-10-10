@@ -164,6 +164,15 @@ h1 {
 .icon-btn.armed { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 .icon-btn.theme-toggle { padding: 9px 11px; }
 
+/* [hidden] debe GANAR a display:inline-flex de .icon-btn (el [hidden] de la
+   UA pierde por especificidad): si no, #install se vería siempre.
+   Mismo patrón que .overlay[hidden] y .aviso-file[hidden]. */
+.icon-btn[hidden] { display: none; }
+
+/* Objetivo táctil >= 44 px (WCAG 2.5.5) para los botones NUEVOS
+   (#install y #share): solo ellos, sin agravar la altura de #undo/#bomb. */
+.tap-44 { min-height: 44px; min-width: 44px; }
+
 /* Interruptor de feedback (sonido + háptica): objetivo táctil >= 44 px
    (WCAG 2.5.5) y estado visible del switch, que role="switch" no pinta
    por sí solo. aria-checked lo gestiona game.js. */
@@ -407,6 +416,7 @@ h1 {
   .cell.fusionando { animation: none; } /* el JS tampoco añade la clase */
   .fx-flotante { animation: flotante-desvanece 0.7s linear forwards; } /* solo desvanece */
   .btn { transition: none; }
+  .toast { transition: none; } /* el toast solo usa opacidad, nunca transform */
   .welcome-card,
   .welcome-overlay.cerrando .welcome-card { animation: none; }
 }
@@ -440,3 +450,28 @@ h1 {
 }
 .aviso-card pre { padding: 10px; margin-bottom: 10px; }
 .aviso-alternativa { font-size: 0.85rem; }
+
+/* ---- Toast de feedback (#status · role="status") ----
+   Vive como hijo de <main class="app">, FUERA de .board-wrap: no añade
+   nodos a #board ni a #fx-layer. Sin foco ni tercer diálogo. Se anima
+   SOLO con opacidad (prefers-reduced-motion gobierna transformaciones);
+   las variables del tema evitan duplicar la rama clara. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);   /* centrado fijo: no se anima */
+  max-width: min(92vw, 420px);
+  padding: 11px 18px;
+  background: var(--bg-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+  font-size: 0.9rem;
+  text-align: center;
+  opacity: 1;
+  transition: opacity 0.18s ease;
+  z-index: 60;
+}
+.toast[hidden] { display: none; }

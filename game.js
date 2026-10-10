@@ -26,6 +26,9 @@ import {
   sonarFinPartida,
   establecerFeedbackActivo,
 } from "./game-fx.js";
+// Composición de la captura compartible (datos → canvas). Módulo SIN DOM en
+// top-level, así que importarlo aquí no añade estado ni efectos secundarios.
+import { dibujarCaptura, MEDIDAS_CAPTURA } from "./game-share.js";
 
 // --- REFERENCIAS AL DOM ---
 const boardEl   = document.getElementById("board");
@@ -40,6 +43,9 @@ const bombBtn   = document.getElementById("bomb");
 const undoCount = document.getElementById("undo-count");
 const bombCount = document.getElementById("bomb-count");
 const welcomeEl = document.getElementById("welcome");
+const shareBtn   = document.getElementById("share");
+const installBtn = document.getElementById("install");
+const statusEl   = document.getElementById("status");
 
 // --- CAPA DE EFECTOS VISUALES (game-fx.js) ---
 // El id se lee aquí con literal (markup.test.js lo valida contra index.html y
@@ -54,6 +60,13 @@ const themeIcon = document.getElementById("theme-icon");
 function aplicarTema(tema) {
   document.documentElement.setAttribute("data-theme", tema);
   themeIcon.textContent = tema === "dark" ? "☀️" : "🌙";
+
+  // theme-color dinámico (barra/ARIA del navegador = --bg del tema). Se
+  // consulta con querySelector (no con getElementById: el meta no tiene id
+  // y así markup.test.js no amplía su escaneo) y con guard null: en jsdom
+  // solo se monta el <body>, el <head> no existe y meta sería null.
+  const metaTema = document.querySelector('meta[name="theme-color"]');
+  if (metaTema) metaTema.content = tema === "dark" ? "#14171c" : "#f4f6f9";
 }
 
 // Al arrancar: si el usuario eligió tema, úsalo; si no, sigue al sistema.
@@ -426,6 +439,10 @@ export function mostrarVictoria() {
     [
       { label: "Seguir jugando", ghost: true, onClick: ocultarOverlay },
       { label: "Nueva partida", onClick: nuevaPartida },
+      // 2ª entrada de compartir (P2): SIEMPRE la última, nunca la primera
+      // (mostrarOverlay enfoca el primer botón y los tests asocian ese foco
+      // con la acción principal). El overlay no se cierra ni se mueve el foco.
+      { label: "Compartir", ghost: true, onClick: () => compartir() },
     ]
   );
 }
@@ -436,7 +453,12 @@ export function mostrarGameOver() {
   mostrarOverlay(
     "Sin movimientos",
     "El tablero está bloqueado. Puntuación: " + score + ".",
-    [{ label: "Nueva partida", onClick: nuevaPartida }]
+    [
+      { label: "Nueva partida", onClick: nuevaPartida },
+      // 2ª entrada de compartir: última para conservar "Nueva partida"
+      // como primer botón enfocado (invariante de flujo.test.js).
+      { label: "Compartir", ghost: true, onClick: () => compartir() },
+    ]
   );
 }
 
@@ -596,6 +618,198 @@ document.getElementById("new-game").addEventListener("click", nuevaPartida);
 undoBtn.addEventListener("click", deshacer);
 bombBtn.addEventListener("click", toggleBomba);
 
+// ============================================================
+//  COMPARTIR (P1) E INSTALACIÓN (P2)
+//  Bloque opt-in y silencioso: CERO escrituras en localStorage, CERO nodos
+//  añadidos a #board ni a #fx-layer y jamás un tercer diálogo (el feedback
+//  es el toast #status con role="status").
+// ============================================================
+
+// Duración del toast. Se oculta SOLO con setTimeout: NUNCA con
+// transitionend/animationend (no disparan en jsdom y dejarían timers vivos
+// que vigilan las suites del Bloque 1).
+export const DURACION_TOAST = 3000;
+let timerToast = null;
+
+function mostrarToast(texto) {
+  statusEl.hidden = false;      // desocultar ANTES de escribir: el live region
+  statusEl.textContent = texto; // debe estar en el árbol accesible al actualizar
+  if (timerToast !== null) clearTimeout(timerToast); // un toast nuevo reinicia el reloj
+  timerToast = setTimeout(() => {
+    timerToast = null;
+    statusEl.hidden = true;
+  }, DURACION_TOAST);
+}
+
+// Snapshot del estado para la captura: construido AQUÍ (game.js es el único
+// que ve board/score/best), como datos puros. Sin localStorage, sin estado
+// nuevo y sin tocar los esquemas stats2048/partida2048: el tablero se copia
+// fila a fila, de modo que mutarlo no afecta al juego.
+export function obtenerSnapshot() {
+  return {
+    board: board.map((fila) => fila.slice()),
+    score,
+    best,
+    tema: document.documentElement.getAttribute("data-theme") || "dark",
+  };
+}
+
+// Captura en un <canvas> SIEMPRE DESCONECTADO: jamás se appendea al DOM (ni
+// en #board ni en #fx-layer). Un nodo extra en #board rompería los 16 hijos
+// y haría que la bomba (celdas.indexOf) borrara la celda equivocada;
+// limpiarFx() vaciaría #fx-layer en el siguiente turno.
+// Guards en este orden:
+//   1) ctx nulo → return ANTES de toDataURL/toBlob (en jsdom getContext
+//      devuelve null y toBlob NUNCA invoca el callback: un await sobre él
+//      colgaría el test hasta timeout);
+//   2) toBlob ausente → return;
+//   3) DPR con tope ×2;
+//   4) fuentes listas con tope ~150 ms (no romper la activación transient
+//      del gesto de compartir);
+//   5) dibujarCaptura() con la paleta del tema activo (D3);
+//   6) toBlob → File para el share.
+async function crearCaptura(snapshot) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  if (typeof canvas.toBlob !== "function") return null;
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(MEDIDAS_CAPTURA.CAPTURA.ancho * dpr);
+  canvas.height = Math.round(MEDIDAS_CAPTURA.CAPTURA.alto * dpr);
+
+  if (document.fonts && document.fonts.ready) {
+    await Promise.race([
+      document.fonts.ready,
+      new Promise((resolver) => setTimeout(resolver, 150)),
+    ]);
+  }
+
+  dibujarCaptura(ctx, snapshot, { ancho: canvas.width, alto: canvas.height });
+
+  const blob = await new Promise((resolver) => canvas.toBlob(resolver, "image/png"));
+  if (!blob) return null;
+  return new File([blob], "tablero-2048.png", { type: "image/png" });
+}
+
+// Cadena de fallbacks (U6/R7):
+//   canShare({files}) → share({files}) → share({title,text,url}) →
+//   descarga PNG → copiar enlace → aviso.
+// AbortError (cancelación del usuario) ⇒ RETURN silencioso: no es error y la
+// cadena NO sigue (cancelar la hoja de compartir no debe disparar una
+// descarga sorpresa). Cualquier otro error cae al paso siguiente y, si se
+// agota, al toast de último recurso: nunca un diálogo ni un rechazo sin
+// capturar. Cada paso lleva su feature-detect (en jsdom todos ausentes).
+export async function compartir() {
+  const snapshot = obtenerSnapshot();
+  const texto = `He hecho ${snapshot.score} puntos en 2048. ¿Puedes superarme?`;
+
+  // Sin captura (jsdom, canvas roto, etc.) la cadena sigue con los pasos de
+  // texto: nunca un rechazo sin capturar.
+  const captura = await crearCaptura(snapshot).catch(() => null);
+
+  // 1) Compartir la captura PNG (solo si el navegador acepta archivos).
+  //    canShare() también va DENTRO del try: algunos navegadores pueden
+  //    lanzar ahí y ningún paso posterior debe quedar sin capturar.
+  if (captura) {
+    try {
+      if (
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [captura] }) === true
+      ) {
+        await navigator.share({
+          files: [captura],
+          title: "2048",
+          text: texto,
+          url: location.href,
+        });
+        return;
+      }
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+    }
+  }
+
+  // 2) Web Share sin archivos: título, texto y enlace.
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({ title: "2048", text: texto, url: location.href });
+      return;
+    } catch (error) {
+      if (error && error.name === "AbortError") return;
+    }
+  }
+
+  // 3) Descarga del PNG (createObjectURL con feature-detect + <a download>
+  //    temporal en document.body, NUNCA dentro de #board).
+  if (captura && typeof URL.createObjectURL === "function") {
+    try {
+      const url = URL.createObjectURL(captura);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = "tablero-2048.png";
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      mostrarToast("Captura descargada");
+      return;
+    } catch {
+      /* sin soporte: siguiente paso */
+    }
+  }
+
+  // 4) Copiar el enlace al portapapeles.
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      mostrarToast("Enlace copiado");
+      return;
+    } catch {
+      /* sin permisos: último recurso */
+    }
+  }
+
+  // 5) Último recurso: ni compartir, ni descargar, ni copiar.
+  mostrarToast("Este navegador no permite compartir");
+}
+
+// El listener nunca deja una promesa rechazada sin capturar (defensa extra:
+// compartir() ya no lanza en la práctica, pero el costo de cubrirla es 1 línea).
+shareBtn.addEventListener("click", () => {
+  void compartir().catch(() => {});
+});
+
+// --- INSTALACIÓN DE LA PWA (D7/R6) ---
+// #install arranca OCULTO y solo se revela en beforeinstallprompt (Chromium);
+// iOS/Firefox nunca disparan ese evento, por eso la instrucción estática vive
+// en #welcome y aquí no hay botón muerto. CERO escrituras al arranque.
+let eventoInstalacion = null;
+
+window.addEventListener("beforeinstallprompt", (evento) => {
+  evento.preventDefault();   // que el navegador no muestre su propia barra
+  eventoInstalacion = evento;
+  installBtn.hidden = false; // único momento en que se revela
+});
+
+installBtn.addEventListener("click", async () => {
+  if (!eventoInstalacion) return; // sin evento pendiente: nada que instalar
+  const evento = eventoInstalacion;
+  eventoInstalacion = null;
+  try {
+    await evento.prompt();
+    await evento.userChoice;
+  } catch {
+    /* instalación cancelada o no disponible */
+  }
+  installBtn.hidden = true; // se oculta vuelva a pasar lo que pase
+});
+
+window.addEventListener("appinstalled", () => {
+  eventoInstalacion = null;
+  installBtn.hidden = true;
+});
+
 // --- GUARDADO AL OCULTAR LA PESTAÑA / CERRARLA ---
 // pagehide cubre el cierre y la navegación; visibilitychange cubre el cambio
 // a otra pestaña o app en móvil. NUNCA beforeunload/unload: no se bloquea ni
@@ -631,3 +845,17 @@ document.getElementById("welcome-close").focus(); // el foco entra en el diálog
 
 // Nota: mover/deshacer/toggleBomba/nuevaPartida/mostrarVictoria/mostrarGameOver
 // se exportan como API del módulo para que los tests de flujo conduzcan la UI.
+
+// --- SERVICE WORKER (decisión D8) ---
+// Registro opt-in, silencioso y JAMÁS en file:// (allí los módulos ES ni
+// siquiera se ejecutan: el script clásico #aviso-file ya cubre ese caso,
+// este guard es defensa redundante). Sin diálogo si falla (coherente con
+// D2, offline silencioso) y CERO escrituras en localStorage. Se espera al
+// evento load para no competir con la carga inicial de la partida.
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  const registrar = () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  };
+  if (document.readyState === "complete") registrar();
+  else window.addEventListener("load", registrar);
+}

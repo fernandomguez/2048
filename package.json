@@ -8,7 +8,8 @@
     "start": "node scripts/servidor.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "iconos": "node scripts/generar-iconos.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
