@@ -161,7 +161,7 @@ Fase 2, inherente a usar ESM sin bundler). Soluciones implementadas:
 ```bash
 npm install     # solo devDependencies
 npm start       # servidor local → http://localhost:8000
-npm test        # 167 tests (11 ficheros)
+npm test        # 205 tests (13 ficheros)
 npm run lint    # ESLint
 npm run iconos  # regenera los 2 PNG de icons/ (SOLO desarrollo: no forma
                 # parte de npm test ni de la CI; los binarios se commitean)
@@ -215,7 +215,7 @@ Estado:
 
 ## 7. Validación final
 
-- **Tests** → ✅ 64/64 (validación de esa fase; recuento actual: **167 en 11
+- **Tests** → ✅ 64/64 (validación de esa fase; recuento actual: **205 en 13
   ficheros**, ver §5 y §10)
 - **Lint** → ✅ 0 problemas
 - **Build** → No aplica (no hay build de producción, por diseño)
@@ -277,11 +277,12 @@ icons/         → 2048.svg · 2048-maskable.svg · apple-touch-icon-180.png
 scripts/generar-iconos.mjs + scripts/lib/ctx-software.mjs
                  → npm run iconos (SOLO desarrollo, sin dependencias)
 
-tests/ (Vitest: núcleo en nodo, UI en jsdom) — 167 tests en 11 ficheros
+tests/ (Vitest: núcleo en nodo, UI en jsdom) — 205 tests en 13 ficheros
   originales: game-core · flujo · markup · persistencia
   Bloque 1:   animacion · feedback · restauracion · arranque · integracion
   Bloque 3:   pwa · share
-  setup.js (fixture DOM + matchMedia stub + Math.random = 0)
+  Bloque 2a:  hitos · reto
+  setup.js (fixture DOM + matchMedia stub + Math.random = 0 + botón #daily)
 scripts/servidor.mjs  → npm start (dev, sin dependencias)
 .github/workflows/ci.yml → lint + tests en push/PR
 ```
@@ -290,9 +291,9 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 
 > Propuesta de 2026-10-03 para que el juego "deje de ser simple" y se convierta
 > en una app como tal. **El Bloque 1 está HECHO** (2026-10-04) y **el Bloque 3
-> (PWA) también** (2026-10-04, commiteado el 2026-10-10); del **Bloque 2** ya
-> están **aprobados el análisis y el plan del sub-bloque 2a** (reto diario +
-> power-ups, 2026-10-10) y lo que falta es **implementarlo**. El primer paso
+> (PWA) también** (2026-10-04, commiteado el 2026-10-10); del **Bloque 2**, el
+> **sub-bloque 2a está IMPLEMENTADO** (reto diario + power-ups, 2026-10-11,
+> fases 03-06 del pipeline) y siguen **aplazados 2b y 2c**. El primer paso
 > (ordenar el historial en commits atómicos, el "Bloque 4" original) ya estaba
 > completo; el orden seguido fue **Bloque 1 → PWA (Bloque 3) → Bloque 2**.
 
@@ -324,7 +325,7 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 > 9 ficheros** (los 64 originales intactos + traza, `esPartidaValida`,
 > animación, feedback, restauración, arranque e integración).
 
-### Bloque 2 — Profundidad (retención) — 🟡 **2a PLANIFICADO (2026-10-10), 2b/2c aplazados**
+### Bloque 2 — Profundidad (retención) — 🟡 **2a HECHO (2026-10-11), 2b/2c aplazados**
 
 - **Tamaños de tablero**: 3×3 / 4×4 / 5×5 / 6×6 (`TAMANO` ya es constante
   paramétrica; ojo con el CSS y con el cálculo del índice de celda).
@@ -334,20 +335,48 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
   hacer una partida determinista (mismo tablero para todos + código
   compartible) es **muy barato** y es el gancho de retención más clásico.
 - **Progresión de power-ups**: ganar deshacer/bomba por hitos (llegar a 512,
-  etc.) en vez de números fijos.
+  etc.) en vez de números fijos. ✅ en el sub-bloque 2a.
+
+**Sub-bloque 2a — implementado (2026-10-11)** ✅:
+
+- **Reto diario con semilla fija** — `semillaDeFecha(fecha)` (FNV-1a → uint32)
+  y `siguienteRng(estado)` (mulberry32 con estado explícito) viven en
+  `game-core.js`; `hoy()` usa la fecha **local** `YYYY-MM-DD` (D5a), los
+  intentos son **ilimitados** (mismo día ⇒ misma secuencia, D5b) y el botón
+  `#daily` en `.actions` va **antes de `#share`** (D5c) con
+  `aria-pressed`. El récord sigue siendo el compartido `stats2048.record`
+  (D5d) y `compartir()` anteponen `Reto diario <fecha>` en modo reto.
+  `rngEstado` se persiste en `partida2048` **NO en `historial`** (D7) y
+  `nuevaPartida()` **sigue sin parámetros** (sus llamantes son listeners de
+  click que le pasan el `Event`).
+- **Power-ups por hitos (D6)** — `HITOS_POWERUPS = { deshacer: [128, 512,
+  1024], bomba: [256, 2048] }` con `calcularHitos()`/`hitosAlcanzados()`
+  puros: +1 deshacer y +1 bomba **sobre los iniciales**, idempotentes y con
+  toast por ficha. Al restaurar un guardado antiguo se **backfillea `hitos`
+  SIN conceder** (D8): contadores intactos, cero toasts.
+- **Persistencia retrocompatible** — campos `modo`/`dia`/`rngEstado`/`hitos`
+  OPCIONALES con `v` sin cambiar; `guardarPartida()` solo los emite cuando se
+  alejan del default (modo normal sin hitos), para no romper el `toEqual` de
+  claves de `restauracion.test.js:82`.
+- **Validación** — `npm run lint` → **0** y `npm test` → **205 tests en 13
+  ficheros** (los 167 anteriores intactos, salvo **una sola línea** en
+  `animacion.test.js` autorizada por el usuario: su partida determinista
+  alcanzaba el 128 y D6 le concede +1 deshacer, así que la aserción pasó de
+  `"2"` a `"3"`; ver `AGENTS.md`).
 
 **Estado por sub-bloque** (decisiones de producto en
 `.opencode/workflow/outputs/01-analysis.md` §7):
 
 | Sub-bloque | Estado | Decisión clave ya tomada |
 | --- | --- | --- |
-| **2a** reto diario + power-ups por hitos | ✅ análisis y plan **aprobados**; **pendiente implementar** (fases 03-06) | semilla local `YYYY-MM-DD`, intentos ilimitados, botón `#daily`, récord compartido; +1 deshacer al 128/512/1024 y +1 bomba al 256/2048 **sobre los iniciales**; `rngEstado` en `partida2048` y **backfill sin conceder** en guardados antiguos |
+| **2a** reto diario + power-ups por hitos | ✅ **IMPLEMENTADO (2026-10-11)** — fases 03-06 del pipeline | semilla local `YYYY-MM-DD`, intentos ilimitados, botón `#daily`, récord compartido; +1 deshacer al 128/512/1024 y +1 bomba al 256/2048 **sobre los iniciales**; `rngEstado` en `partida2048` y **backfill sin conceder** en guardados antiguos |
 | **2b** tamaños de tablero | ⏸ aplazado | **Opción B: derivar el tamaño del propio tablero** (`matriz.length`) — exige aprobación explícita de la línea roja "algoritmo intacto" al abrir ese pipeline; `game-share.js:224` también divide entre 4 |
 | **2c** panel de estadísticas | ⏸ aplazado | **clave nueva `estadisticas2048`** + **panel no modal** (no romper el invariante de 2 `role="dialog"`) |
 
-Informes del pipeline: `.opencode/workflow/outputs/01-analysis.md` y
-`02-plan.md` (12 tasks en 2 tandas). El siguiente paso es la fase
-**03-implementation** de ese plan.
+Informes del pipeline del 2a en `.opencode/workflow/outputs/`:
+`01-analysis.md`, `02-plan.md`, `03-implementation.md`, `04-review.md`,
+`05-fix.md` y `06-final-validation.md`. **Sin push** (D12): los cambios del 2a
+quedan en el working tree hasta que el usuario decida commitearlos.
 
 ### Bloque 3 — Que sea "una app" literalmente — ✅ HECHO (2026-10-04)
 

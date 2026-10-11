@@ -59,7 +59,7 @@ No hay build: los archivos de `game.js`, `game-core.js`, `game-fx.js`,
 | `game.js` | Capa UI: entradas, render, overlays, power-ups, persistencia |
 | `game-fx.js` | Efectos: slide/pop/flotantes, sonido Web Audio y háptica (sin estado de juego) |
 | `style.css` | Temas (claro/oscuro) y layout `dvh` |
-| `tests/` | 11 suites: núcleo puro, flujos de UI (jsdom), markup real, persistencia, animación, feedback, restauración, arranque, integración, PWA y compartir |
+| `tests/` | 13 suites: núcleo puro, flujos de UI (jsdom), markup real, persistencia, animación, feedback, restauración, arranque, integración, PWA, compartir, power-ups por hitos y reto diario |
 
 ## Tecnologías
 

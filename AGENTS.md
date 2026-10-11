@@ -10,7 +10,9 @@ Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funcio
 
 - `index.html` — marcado, meta tags y accesibilidad; carga `game.js` como `<script type="module">`.
 - `game-core.js` — lógica pura del juego: recibe datos y devuelve datos. **Sin DOM,
-  sin localStorage, sin eventos.** Toda regla nueva va aquí.
+  sin localStorage, sin eventos.** Toda regla nueva va aquí (incluidos
+  `semillaDeFecha`/`siguienteRng` del reto diario y
+  `calcularHitos`/`hitosAlcanzados` de los power-ups por hitos).
 - `game.js` — capa UI: entradas, render, overlays, power-ups, persistencia,
   compartir (`obtenerSnapshot()`, `compartir()`, `DURACION_TOAST`) e
   instalación (evento `beforeinstallprompt`). Importa `game-core.js`,
@@ -90,11 +92,24 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
   más), canvas desconectado, toast con fake timers, `AbortError` sin descarga,
   `beforeinstallprompt`, anti-deriva `RAMPA`↔`style.css`, `dibujarCaptura()`
   con un ctx stub y el botón "Compartir" **segundo** en los overlays de fin.
+- `tests/hitos.test.js` — power-ups por hitos (D6/D8, sub-bloque 2a): regla
+  pura en `game-core.js` (`calcularHitos`, `hitosAlcanzados`, umbrales
+  validados por `esPartidaValida`) **y** su integración en la UI: concesión
+  +1 deshacer al 128 / +1 bomba al 256 con su toast, idempotencia y backfill
+  SIN conceder en guardados antiguos (regresión de `arranque.test.js`).
+- `tests/reto.test.js` — reto diario (D5, sub-bloque 2a): `semillaDeFecha` y
+  `siguienteRng` puros en `game-core.js` **y** la UI (`#daily`):
+  restauración del reto al arrancar, `rngEstado` que avanza exactamente 2
+  pasos por spawn (D7), mismo día ⇒ mismo tablero (`vi.useFakeTimers({ toFake:
+  ["Date"] })`), otro día ⇒ otro tablero, salida a modo normal con
+  `#new-game`, snapshot/compartir con fecha y `pagehide`.
 - `tests/setup.js` crea el DOM de arranque y **mockea `Math.random` a 0**: en tests
   de UI el tablero inicial es siempre `[[2,2,0,0], ...]` y `mover("left")` produce
   `[[4,2,0,0], ...]` con 4 puntos (2 celdas: la fusión resta una y el spawn añade otra).
+  **Única suite existente editada en el 2a**: añadió el botón `#daily` a `.actions`
+  (antes de `#share`), igual que `index.html`.
 
-Total: **167 tests en 11 ficheros** (`npm test` debe dar todo en verde).
+Total: **205 tests en 13 ficheros** (`npm test` debe dar todo en verde).
 
 ## Convenciones del repo
 
@@ -119,6 +134,19 @@ Total: **167 tests en 11 ficheros** (`npm test` debe dar todo en verde).
   deshacer en fin de partida.
 - **La bomba NO entra en el historial de deshacer** (recurso consumible). Decisión
   de producto documentada en `game.js`; no cambiarla sin acordarlo.
+- **Reto diario (sub-bloque 2a, D5)**: `#daily` va en `.actions` ANTES de
+  `#share` (el de compartir es siempre el último botón de la barra). En modo
+  reto el spawn usa `rndReto()` (mulberry32 con `rngEstado` persistido); el
+  `Math.random()` de la página solo queda en el modo normal — **la semilla NO
+  vive en `historial`** (D7). La fecha es local (`hoy()` → `YYYY-MM-DD`), los
+  intentos son ilimitados (mismo día ⇒ misma secuencia) y el récord se
+  comparte con el de siempre (`stats2048.record`, D5d).
+- **Único test existente con una línea adaptada en el 2a**: `animacion.test.js`
+  "deshacer() durante la ventana cancela el overlay" jugaba una partida
+  determinista hasta el tablero bloqueado, por lo que alcanzaba la ficha 128 y
+  D6 le concedía +1 deshacer: la aserción pasó de `"2"` a `"3"` (autorizado
+  por el usuario en la fase 03). Si otra suite de las 11 originales choca con
+  una decisión nueva, **se para y se reporta** antes de tocarla.
 - **Persistencia (DOS claves)**: `localStorage["stats2048"]` guarda
   `{ record, tema, fxActivo? }` vía `leerStats/guardarStats` (`fxActivo` solo
   se escribe al pulsar `#fx-toggle`) y `localStorage["partida2048"]` guarda la
@@ -126,12 +154,22 @@ Total: **167 tests en 11 ficheros** (`npm test` debe dar todo en verde).
   `mover()` — **`render()` no persiste nada** (no reintroducir ese efecto).
 - **Partida en curso en `partida2048`**: esquema v1 `{ v, board, score,
   deshacerRestantes, bombasRestantes, victoriaAvisada, historial }` (con
-  `historial`, si no el deshacer moriría al recargar). **El `historial` no
+  `historial`, si no el deshacer moriría al recargar), **más campos
+  OPCIONALES del sub-bloque 2a** (sin migración, `v` sigue en 1): `modo`
+  (`"normal" | "reto"`, omitido en normal), `hitos` (umbrales de power-ups ya
+  concedidos, omitido si es `[]`) y, SOLO en modo reto, `dia`
+  (`YYYY-MM-DD`) y `rngEstado` (entero). `guardarPartida()` los emite
+  únicamente cuando se alejan del valor por defecto — así un guardado de
+  partida normal conserva exactamente las 7 claves que espera
+  `restauracion.test.js:82`. Al restaurar, lo que no viaja usa el default:
+  modo normal y `hitos = hitosAlcanzados(board)` (**backfill SIN conceder**,
+  D8: los contadores no suben ni hay toast). **El `historial` no
   tiene tope**: cada entrada (`{board, score}`) ocupa ~100-150 B, de modo que
   1000 movimientos quedan por debajo de ~200 KB frente a los ~5 MiB de cuota,
   y **la clave se borra al acabar la partida** (riesgo 14 documentado, no un
   creep silencioso). Se guarda en `mover()`
-  (si hubo cambio), `deshacer()`, el handler de la bomba, `pagehide` y
+  (si hubo cambio; los hitos del turno se aplican ANTES de persistir),
+  `deshacer()`, el handler de la bomba, `pagehide` y
   `visibilitychange` oculto; se **borra** en `nuevaPartida()` y al acabar la
   partida. Se restaura SOLO si `esPartidaValida()` (de `game-core.js`) la
   valida y no está bloqueada; si no, se borra y empieza partida nueva. Nunca
