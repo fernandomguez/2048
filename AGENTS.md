@@ -131,7 +131,12 @@ Total: **205 tests en 13 ficheros** (`npm test` debe dar todo en verde).
   partida — enmienda de la decisión 11).
 - **Deshacer con overlay abierto** (decisión de diseño): restaurar la partida cierra
   el overlay de fin revalidando `esGameOver`. No "arreglarlo" deshabilitando el
-  deshacer en fin de partida.
+  deshacer en fin de partida. **Cerrado el 2026-10-11**: NO se ofrece rescate
+  con bomba ni aviso de "te quedan X bombas" en el diálogo de fin — el usuario
+  decidió que **el jugador es responsable de sus recursos** (lo no usado al
+  bloquear el tablero, se pierde). En la práctica el game over ya es final con
+  ratón (el botón de deshacer queda tapado por el overlay; solo es alcanzable
+  en los 260 ms previos o con Tab). No reabrir esto sin acuerdo explícito.
 - **La bomba NO entra en el historial de deshacer** (recurso consumible). Decisión
   de producto documentada en `game.js`; no cambiarla sin acordarlo.
 - **Reto diario (sub-bloque 2a, D5)**: `#daily` va en `.actions` ANTES de

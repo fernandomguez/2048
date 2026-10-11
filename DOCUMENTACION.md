@@ -363,6 +363,12 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
   `animacion.test.js` autorizada por el usuario: su partida determinista
   alcanzaba el 128 y D6 le concede +1 deshacer, así que la aserción pasó de
   `"2"` a `"3"`; ver `AGENTS.md`).
+- **Decisión de producto (2026-10-11, CERRADA)** — propuesta descartada de
+  ofrecer "todavía tienes X bombas" en el diálogo de fin: **el jugador es
+  responsable de sus recursos** y lo no usado al bloquear el tablero se
+  pierde. El game over es final en la práctica (el deshacer con overlay
+  abierto solo es alcanzable en los 260 ms previos o con Tab). No reabrir
+  sin acuerdo explícito.
 
 **Estado por sub-bloque** (decisiones de producto en
 `.opencode/workflow/outputs/01-analysis.md` §7):
