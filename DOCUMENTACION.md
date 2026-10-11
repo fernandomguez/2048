@@ -366,9 +366,11 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 - **Decisión de producto (2026-10-11, CERRADA)** — propuesta descartada de
   ofrecer "todavía tienes X bombas" en el diálogo de fin: **el jugador es
   responsable de sus recursos** y lo no usado al bloquear el tablero se
-  pierde. El game over es final en la práctica (el deshacer con overlay
-  abierto solo es alcanzable en los 260 ms previos o con Tab). No reabrir
-  sin acuerdo explícito.
+  pierde. Además, a petición del usuario, el game over pasó a ser **100 %
+  final en código**: `deshacer()` y su botón se bloquean con `esGameOver`
+  (ni ventana de 260 ms ni Tab). Tests: 205/13 en verde; única suite
+  reescrita el caso de la ventana de `animacion.test.js` (excepción
+  autorizada). No reabrir sin acuerdo explícito.
 
 **Estado por sub-bloque** (decisiones de producto en
 `.opencode/workflow/outputs/01-analysis.md` §7):

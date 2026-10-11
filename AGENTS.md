@@ -129,14 +129,16 @@ Total: **205 tests en 13 ficheros** (`npm test` debe dar todo en verde).
   para no operar dentro de la ventana de 260 ms del overlay de fin pendiente
   (en esa ventana `hayModalAbierto()` es `false` pero el estado ya dice fin de
   partida — enmienda de la decisión 11).
-- **Deshacer con overlay abierto** (decisión de diseño): restaurar la partida cierra
-  el overlay de fin revalidando `esGameOver`. No "arreglarlo" deshabilitando el
-  deshacer en fin de partida. **Cerrado el 2026-10-11**: NO se ofrece rescate
-  con bomba ni aviso de "te quedan X bombas" en el diálogo de fin — el usuario
-  decidió que **el jugador es responsable de sus recursos** (lo no usado al
-  bloquear el tablero, se pierde). En la práctica el game over ya es final con
-  ratón (el botón de deshacer queda tapado por el overlay; solo es alcanzable
-  en los 260 ms previos o con Tab). No reabrir esto sin acuerdo explícito.
+- **Deshacer con overlay abierto** — decisión **SUPERADA el 2026-10-11 por el
+  usuario**: el game over es **DEFINITIVO**. `deshacer()` y el botón de
+  deshacer se niegan/deshabilitan cuando `esGameOver(board)` es true (ni en
+  la ventana de 260 ms ni con Tab hay rescate): el jugador es responsable de
+  sus recursos y lo no usado al bloquear el tablero, se pierde. El test P1 de
+  `flujo.test.js` ("deshacer cierra el overlay") sigue verde porque fuerza
+  `mostrarGameOver()` sobre un tablero VIVO — el guard es por ESTADO, no por
+  overlay. La única suite reescrita fue el caso de la ventana en
+  `animacion.test.js` (2ª y última excepción autorizada a la línea roja).
+  No reabrir esto sin acuerdo explícito.
 - **La bomba NO entra en el historial de deshacer** (recurso consumible). Decisión
   de producto documentada en `game.js`; no cambiarla sin acordarlo.
 - **Reto diario (sub-bloque 2a, D5)**: `#daily` va en `.actions` ANTES de

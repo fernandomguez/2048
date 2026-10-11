@@ -309,20 +309,22 @@ describe("overlay de fin diferido (Task 5)", () => {
     expect(document.getElementById("overlay-title").textContent).toBe("Sin movimientos");
   });
 
-  it("deshacer() durante la ventana cancela el overlay", async () => {
+  it("deshacer() durante la ventana NO rescata: el fin es definitivo", async () => {
     jugarHastaTableroBloqueado();
 
-    // La partida completa alcanzó la ficha 128: D6 (sub-bloque 2a) ya concedió
-    // +1 deshacer, así que el contador son 4 antes del deshacer y 3 después
-    // (3 iniciales + 1 de hito − 1 consumido). Excepción aprobada a la línea
-    // roja "no tocar las suites existentes": una sola línea, autorizada por el
-    // usuario en la fase 03 del sub-bloque 2a.
-    juego.deshacer(); // dentro de la ventana de 260 ms
+    // Decisión 2026-10-11 (2ª y última excepción autorizada a la línea roja
+    // "no tocar las suites existentes"): el game over es FINAL — el deshacer
+    // ya no rescata del tablero bloqueado ni en la ventana de 260 ms. El
+    // contador conserva los usos (4 = 3 + 1 del hito 128, D6) y el overlay
+    // del fin llega igual.
+    expect(document.getElementById("undo-count").textContent).toBe("4");
 
-    expect(document.getElementById("undo-count").textContent).toBe("3"); // consume un uso
+    juego.deshacer(); // dentro de la ventana de 260 ms: ya no surte efecto
+
+    expect(document.getElementById("undo-count").textContent).toBe("4"); // nada consumido
     await new Promise(resolve => setTimeout(resolve, 320));
 
-    expect(document.getElementById("overlay").hidden).toBe(true); // nunca llegó
+    expect(document.getElementById("overlay").hidden).toBe(false); // el fin llega igual
   });
 
   it("nuevaPartida() durante la ventana cancela el overlay", async () => {

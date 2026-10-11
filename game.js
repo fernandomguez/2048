@@ -338,6 +338,11 @@ function actualizarRecord() {
 // Restaurar la partida cierra el overlay (revalidando el estado), de modo que el
 // usuario puede recuperarse de un game over en lugar de quedar bloqueado.
 export function deshacer() {
+  // Fin de partida DEFINITIVO (decisión 2026-10-11): con el tablero bloqueado
+  // no hay rescate — ni durante los 260 ms del overlay ni con Tab. El jugador
+  // es responsable de sus recursos; usarlos antes de morir o perderlos.
+  if (esGameOver(board)) return;
+
   limpiarFx(); // interrumpe la capa visual antes de restaurar el estado
 
   const resultado = aplicarDeshacer({
@@ -372,7 +377,8 @@ export function deshacer() {
 
 function actualizarBotonDeshacer() {
   undoCount.textContent = deshacerRestantes;
-  undoBtn.disabled = deshacerRestantes <= 0 || historial.length === 0;
+  // Con el tablero bloqueado el botón queda apagado: el fin es definitivo.
+  undoBtn.disabled = deshacerRestantes <= 0 || historial.length === 0 || esGameOver(board);
 }
 
 // --- POWER-UP: BOMBA ---
