@@ -20,6 +20,10 @@ import {
   HITOS_POWERUPS,
   calcularHitos,
   hitosAlcanzados,
+  parsearCodigoJugada,
+  reproducirSecuencia,
+  DIRECCIONES_REPLAY,
+  CARACTERES_REPLAY,
 } from "./game-core.js";
 import {
   configurarFx,
@@ -49,6 +53,12 @@ const undoCount = document.getElementById("undo-count");
 const bombCount = document.getElementById("bomb-count");
 const welcomeEl = document.getElementById("welcome");
 const dailyBtn   = document.getElementById("daily");
+const replayBtn      = document.getElementById("replay");
+const replayPanelEl  = document.getElementById("replay-panel");
+const replayInputEl  = document.getElementById("replay-input");
+const replayStartBtn = document.getElementById("replay-start");
+const replayCancelBtn = document.getElementById("replay-cancel");
+const replayStopBtn  = document.getElementById("replay-stop");
 const shareBtn   = document.getElementById("share");
 const installBtn = document.getElementById("install");
 const statusEl   = document.getElementById("status");
@@ -143,6 +153,15 @@ let modo = "normal";
 let diaReto = null;   // "YYYY-MM-DD" local, solo en modo reto
 let rngEstado = 0;    // estado del RNG del reto (entero serializable)
 let hitos = [];       // umbrales de power-ups ya concedidos (D6)
+let movimientos = ""; // secuencia LRUD del reto en curso (sub-bloque 2d)
+
+// --- REPLAY DEL RETO (sub-bloque 2d) ---
+// `reproduciendo` silencia récord, guardado y overlays de fin mientras el
+// juego se auto-juega una secuencia compartida; el intento del jugador se
+// preserva en `snapshotReplay` (R2) y la clave partida2048 no se toca.
+let reproduciendo = false;
+let snapshotReplay = null;
+let timerReplay = null;
 
 // --- MODALES ---
 // Un modal (bienvenida o fin de partida) impide jugar. Este es el ÚNICO sitio
@@ -291,6 +310,9 @@ export function mover(direccion) {
     actualizarRecord();
     spawn();
     aplicarHitos();      // hitos del nuevo tablero (D6), antes de persistir
+    // Grabación del replay (2d): solo el reto real, nunca durante una
+    // reproducción (la secuencia que se reproduce no es "tuya").
+    if (modo === "reto" && !reproduciendo) movimientos += CARACTERES_REPLAY[direccion];
     guardarPartida(); // el turno cambió la partida en curso: se persiste
   } else {
     ultimaFichaNueva = null;
@@ -308,6 +330,10 @@ export function mover(direccion) {
     animarMovimiento({ traza: resultado.traza, previo: resultado.previo });
     pintarFlotantes(resultado.traza.fusiones); // +N sobre cada celda fusionada
   }
+
+  // Replay (2d, R6): los overlays de fin no se muestran sobre una partida
+  // que no es del usuario — el replay simplemente se detiene (terminarReplay).
+  if (reproduciendo) return;
 
   if (!victoriaAvisada && hayVictoria(board)) {
     victoriaAvisada = true;        // estado síncrono…
@@ -327,6 +353,7 @@ function actualizarMarcador() {
 
 // El récord se guarda EXPLÍCITAMENTE donde cambia la puntuación, no al renderizar.
 function actualizarRecord() {
+  if (reproduciendo) return; // un replay no marca récord (2d)
   if (score > best) {
     best = score;
     guardarRecord(best);
@@ -342,6 +369,7 @@ export function deshacer() {
   // no hay rescate — ni durante los 260 ms del overlay ni con Tab. El jugador
   // es responsable de sus recursos; usarlos antes de morir o perderlos.
   if (esGameOver(board)) return;
+  if (reproduciendo) return; // el replay controla el tablero (2d)
 
   limpiarFx(); // interrumpe la capa visual antes de restaurar el estado
 
@@ -364,6 +392,9 @@ export function deshacer() {
   historial = resultado.historial;
   deshacerRestantes = resultado.usos;
   ultimaFichaNueva = null;
+  // Replay (2d, I2): el deshacer revierte un movimiento, así que la secuencia
+  // grabada pierde su último carácter (1:1 con historial).
+  if (modo === "reto" && movimientos.length > 0) movimientos = movimientos.slice(0, -1);
   guardarPartida(); // restauró → la partida en curso también cambia
 
   // Si el tablero restaurado está bloqueado se muestra el fin de partida,
@@ -388,6 +419,7 @@ function actualizarBotonDeshacer() {
 export function toggleBomba() {
   if (bombasRestantes <= 0) return;
   if (hayModalAbierto()) return; // con un modal abierto las celdas no son clicables
+  if (reproduciendo) return;     // el replay controla el tablero (2d)
   // Ventana de fin de partida (decisión 11 enmendada): mientras el overlay
   // diferido siga pendiente el estado YA dice fin de partida aunque el
   // diálogo aún no se haya mostrado, así que la bomba tampoco se arma aquí
@@ -422,6 +454,9 @@ boardEl.addEventListener("click", (evento) => {
   }
   board[fila][col] = 0;
   bombasRestantes--;
+  // Replay (2d, I1): la bomba muta el tablero sin RNG ni movimiento, así que
+  // el intento deja de ser reproducible y se limpia la secuencia.
+  if (modo === "reto") movimientos = "";
   modoBomba = false;
   boardEl.classList.remove("modo-bomba");
   ultimaFichaNueva = null;
@@ -536,6 +571,11 @@ export function mostrarGameOver() {
 // primer argumento: con firma "nuevaPartida(modo)" se arrancaría la partida en
 // modo "Event" cada vez que se pulsara un botón.
 function empezarPartida(nuevoModo) {
+  // Un replay en curso muere con la partida que lo sustituye (2d).
+  if (timerReplay !== null) { clearTimeout(timerReplay); timerReplay = null; }
+  reproduciendo = false;
+  snapshotReplay = null;
+  replayStopBtn.hidden = true; // el control "Parar" solo vive con un replay vivo
   limpiarFx(); // la capa visual se vacía en cada reinicio
   cancelarOverlayPendiente(); // ningún overlay de la partida anterior se cuela
   borrarPartida(); // la partida anterior deja de estar "en curso"
@@ -543,6 +583,7 @@ function empezarPartida(nuevoModo) {
   diaReto = modo === "reto" ? hoy() : null;
   rngEstado = modo === "reto" ? semillaDeFecha(diaReto) : 0; // semilla del día
   hitos = [];
+  movimientos = "";
   board = crearTablero();
   score = 0;
   victoriaAvisada = false;
@@ -570,6 +611,174 @@ export function nuevaPartida() {
 function actualizarBotonReto() {
   dailyBtn.setAttribute("aria-pressed", String(modo === "reto"));
 }
+
+// ============================================================
+//  REPLAY DEL RETO DIARIO (sub-bloque 2d) — "Reproduce mi jugada"
+//  La secuencia LRUD + la semilla de la fecha determinan la partida ENTERA
+//  (R1/R5): reproducir es alimentar mover() en bucle. Mientras dura,
+//  `reproduciendo` silencia récord/guardado/overlays y el intento del
+//  jugador vive en `snapshotReplay` — la clave partida2048 no se toca (R2).
+// ============================================================
+
+// Exportado para que los tests usen el valor real (mismo patrón que
+// DURACION_TOAST).
+export const INTERVALO_REPLAY = 300;
+
+// Lista fija de campos del intento: si alguna variable de partida crece,
+// añádela aquí (el test UI compara el snapshot entero antes/después).
+function snapshotPartida() {
+  return {
+    board: board.map((fila) => fila.slice()),
+    score,
+    deshacerRestantes,
+    bombasRestantes,
+    victoriaAvisada,
+    historial: historial.map((entrada) => ({
+      board: entrada.board.map((fila) => fila.slice()),
+      score: entrada.score,
+    })),
+    modo,
+    diaReto,
+    rngEstado,
+    hitos: hitos.slice(),
+    movimientos,
+  };
+}
+
+function restaurarSnapshot(s) {
+  board = s.board.map((fila) => fila.slice());
+  score = s.score;
+  deshacerRestantes = s.deshacerRestantes;
+  bombasRestantes = s.bombasRestantes;
+  victoriaAvisada = s.victoriaAvisada;
+  historial = s.historial.map((entrada) => ({
+    board: entrada.board.map((fila) => fila.slice()),
+    score: entrada.score,
+  }));
+  modo = s.modo;
+  diaReto = s.diaReto;
+  rngEstado = s.rngEstado;
+  hitos = s.hitos.slice();
+  movimientos = s.movimientos;
+  ultimaFichaNueva = null;
+}
+
+// Monta un juego de reto LIMPIO con la semilla de la fecha del código (cualquier
+// fecha sirve, R5) y arranca el bucle de reproducción.
+function iniciarReplay(fecha, secuencia) {
+  snapshotReplay = snapshotPartida(); // el intento del jugador queda preservado
+  limpiarFx();
+  cancelarOverlayPendiente();
+  modoBomba = false;
+  boardEl.classList.remove("modo-bomba");
+  modo = "reto";
+  diaReto = fecha;
+  rngEstado = semillaDeFecha(fecha);
+  hitos = [];
+  movimientos = "";
+  board = crearTablero();
+  spawn(); // las 2 fichas iniciales del día, igual que reproducirSecuencia
+  spawn();
+  score = 0;
+  victoriaAvisada = false;
+  historial = [];
+  deshacerRestantes = USOS_DESHACER_INICIALES;
+  bombasRestantes = BOMBAS_INICIALES;
+  reproduciendo = true;
+  render();
+  actualizarBotonDeshacer();
+  actualizarBotonBomba();
+  actualizarBotonReto();
+  replayStopBtn.hidden = false;
+  reproducir(secuencia);
+}
+
+// Bucle encadenado de setTimeout (nunca transitionend: patrón del repo).
+function reproducir(secuencia) {
+  let indice = 0;
+  const paso = () => {
+    if (indice >= secuencia.length) {
+      terminarReplay("Reproducción terminada");
+      return;
+    }
+    mover(DIRECCIONES_REPLAY[secuencia[indice]]);
+    indice++;
+    timerReplay = setTimeout(paso, INTERVALO_REPLAY);
+  };
+  timerReplay = setTimeout(paso, INTERVALO_REPLAY);
+}
+
+// Devuelve el tablero del jugador exactamente como estaba (R2).
+function terminarReplay(mensaje) {
+  if (timerReplay !== null) {
+    clearTimeout(timerReplay);
+    timerReplay = null;
+  }
+  reproduciendo = false;
+  if (snapshotReplay) {
+    restaurarSnapshot(snapshotReplay);
+    snapshotReplay = null;
+  }
+  limpiarFx();
+  render();
+  actualizarBotonDeshacer();
+  actualizarBotonBomba();
+  actualizarBotonReto();
+  replayStopBtn.hidden = true;
+  if (mensaje) mostrarToast(mensaje);
+}
+
+export function pararReplay() {
+  if (!reproduciendo) return;
+  terminarReplay("Reproducción parada");
+}
+
+// Valida el texto pegado (mensaje completo o código suelto) SIN tocar estado:
+// un dry-run puro del núcleo decide si el código es bueno antes de arrancar.
+export function reproducirJugada(texto) {
+  const codigo = parsearCodigoJugada(texto);
+  if (!codigo) {
+    mostrarToast("Código de jugada no válido");
+    return false;
+  }
+  try {
+    reproducirSecuencia(codigo.fecha, codigo.movimientos); // dry-run
+  } catch {
+    mostrarToast("Código de jugada no válido");
+    return false;
+  }
+  if (reproduciendo) pararReplay(); // un código nuevo sustituye al anterior
+  mostrarToast("Reproduciendo jugada " + codigo.fecha);
+  iniciarReplay(codigo.fecha, codigo.movimientos);
+  return true;
+}
+
+// --- PANEL "VER JUGADA" (NO modal: el invariante son 2 role="dialog") ---
+function abrirPanelReplay() {
+  replayPanelEl.hidden = false;
+  replayBtn.setAttribute("aria-expanded", "true");
+  replayInputEl.focus();
+}
+
+function cerrarPanelReplay() {
+  replayPanelEl.hidden = true;
+  replayBtn.setAttribute("aria-expanded", "false");
+  if (reproduciendo) pararReplay();
+  replayBtn.focus(); // el foco vuelve al disparador (patrón de los overlays)
+}
+
+replayBtn.addEventListener("click", () => {
+  if (replayPanelEl.hidden) abrirPanelReplay();
+  else cerrarPanelReplay();
+});
+
+replayStartBtn.addEventListener("click", () => {
+  reproducirJugada(replayInputEl.value);
+});
+
+replayCancelBtn.addEventListener("click", cerrarPanelReplay);
+
+replayStopBtn.addEventListener("click", pararReplay);
 
 //Para el tema claro / oscuro
 function leerStats() {
@@ -602,6 +811,7 @@ function guardarRecord(valor) {
 const CLAVE_PARTIDA = "partida2048";
 
 function guardarPartida() {
+  if (reproduciendo) return; // un replay NUNCA pisa el intento del jugador (2d)
   try {
     const partida = {
       v: 1,
@@ -620,6 +830,7 @@ function guardarPartida() {
       partida.modo = "reto";
       partida.dia = diaReto;
       partida.rngEstado = rngEstado;
+      partida.movimientos = movimientos; // secuencia LRUD del intento (2d)
     }
     if (hitos.length > 0) partida.hitos = hitos;
     localStorage.setItem(CLAVE_PARTIDA, JSON.stringify(partida));
@@ -671,6 +882,7 @@ export function restaurarPartida() {
   diaReto = partida.dia ?? null;
   rngEstado = partida.rngEstado ?? 0;
   hitos = partida.hitos ?? hitosAlcanzados(partida.board);
+  movimientos = partida.movimientos ?? ""; // secuencia del intento (2d)
   if (modo === "reto" && diaReto === null) diaReto = hoy(); // nunca "Reto diario null"
 
   render();
@@ -689,6 +901,7 @@ document.addEventListener("keydown", (evento) => {
     ArrowDown:  "down",
   }[evento.key];
   if (direccion) {
+    if (reproduciendo) return; // el replay controla el tablero (2d)
     evento.preventDefault();
     mover(direccion);
   }
@@ -705,6 +918,7 @@ document.addEventListener("touchstart", (evento) => {
 
 
 document.addEventListener("touchend", (evento) => {
+  if (reproduciendo) return; // el replay controla el tablero (2d)
   const deltaX = evento.changedTouches[0].clientX - inicioX;
   const deltaY = evento.changedTouches[0].clientY - inicioY;
   const UMBRAL = 30;
@@ -824,9 +1038,12 @@ async function crearCaptura(snapshot) {
 export async function compartir() {
   const snapshot = obtenerSnapshot();
   // Texto según el modo (D5): el reto comparte su FECHA, que es el código
-  // compartible (el mismo tablero para todos los que juegan ese día).
+  // compartible (el mismo tablero para todos los que juegan ese día). Con
+  // secuencia grabada (2d) se añade el código de replay; sin ella (o tras
+  // una bomba, I1) el texto vuelve al de solo puntuación.
   const texto = modo === "reto"
     ? `Reto diario ${snapshot.dia}: ${snapshot.score} puntos. ¿Puedes superarme?`
+      + (movimientos !== "" ? ` Reproduce: 2048reto:${snapshot.dia}:${movimientos}` : "")
     : `He hecho ${snapshot.score} puntos en 2048. ¿Puedes superarme?`;
 
   // Sin captura (jsdom, canvas roto, etc.) la cadena sigue con los pasos de

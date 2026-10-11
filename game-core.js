@@ -371,6 +371,63 @@ export function hitosAlcanzados(board) {
   return calcularHitos(board, []).concedidos;
 }
 
+// ============================================================
+//  SUB-BLOQUE 2d — REPLAY DEL RETO DIARIO
+//  Funciones PURAS: parsear el código compartido y reconstruir la partida
+//  de una fecha dada a partir de su secuencia de movimientos. Sin Date,
+//  sin DOM, sin localStorage. La repropropagación en la UI (game.js) es
+//  quien alimenta mover() con esta misma cadena de RNG.
+// ============================================================
+
+// Límite del código compartido: una partida larga ronda los 500
+// movimientos; 5000 deja margen holgado y descarta textos maliciosos.
+export const MAX_MOVIMIENTOS_REPLAY = 5000;
+
+// Mapeo carácter del código ⇄ dirección interna. Fuente única: la usan el
+// núcleo (reproducirSecuencia) y la capa UI (grabación y reproducción).
+export const DIRECCIONES_REPLAY = { L: "left", R: "right", U: "up", D: "down" };
+export const CARACTERES_REPLAY = { left: "L", right: "R", up: "U", down: "D" };
+
+const RE_CODIGO_REPLAY = /2048reto:(\d{4}-\d{2}-\d{2}):([LRUD]+)/;
+
+// Extrae el PRIMER código de jugada de un texto (el mensaje completo del
+// compartir o solo el código suelto). Devuelve { fecha, movimientos } o
+// null. Nunca lanza: el texto pegado por el usuario es datos, no código.
+export function parsearCodigoJugada(texto) {
+  if (typeof texto !== "string") return null;
+  const coincidencia = RE_CODIGO_REPLAY.exec(texto);
+  if (!coincidencia) return null;
+  const [, fecha, movimientos] = coincidencia;
+  if (movimientos.length > MAX_MOVIMIENTOS_REPLAY) return null;
+  return { fecha, movimientos };
+}
+
+// Dry-run de una secuencia sobre el tablero sembrado de `fecha`: replica el
+// contrato EXACTO de mover() — spawn SOLO si hubo cambio, y un movimiento
+// sin cambio se ignora sin avanzar la cadena del RNG. Pura: no toca estado.
+export function reproducirSecuencia(fecha, movimientos) {
+  let estado = semillaDeFecha(fecha);
+  const rnd = () => {
+    const paso = siguienteRng(estado);
+    estado = paso.estado;
+    return paso.valor;
+  };
+
+  let board = agregarFicha(crearTablero(), rnd).matriz;
+  board = agregarFicha(board, rnd).matriz;
+  let score = 0;
+
+  for (const caracter of movimientos) {
+    const resultado = aplicarMovimiento(board, DIRECCIONES_REPLAY[caracter]);
+    if (!resultado.cambio) continue;
+    board = resultado.matriz;
+    score += resultado.puntos;
+    board = agregarFicha(board, rnd).matriz;
+  }
+
+  return { board, score };
+}
+
 // Valida la forma de una partida guardada (clave "partida2048").
 // Devuelve booleano y NUNCA lanza: una partida corrupta debe poder
 // descartarse en game.js sin romper el arranque.
@@ -396,6 +453,12 @@ export function esPartidaValida(partida) {
     const umbralesValidos = new Set([...HITOS_POWERUPS.deshacer, ...HITOS_POWERUPS.bomba]);
     if (!partida.hitos.every(umbral => umbralesValidos.has(umbral))) return false;
   }
+
+  // Secuencia del replay (sub-bloque 2d): solo si aparece; string LRUD.
+  if (partida.movimientos !== undefined
+      && (typeof partida.movimientos !== "string"
+          || partida.movimientos.length > MAX_MOVIMIENTOS_REPLAY
+          || !/^[LRUD]*$/.test(partida.movimientos))) return false;
 
   if (!Array.isArray(partida.historial)) return false;
   return partida.historial.every(entrada =>

@@ -173,6 +173,37 @@ h1 {
    (#install y #share): solo ellos, sin agravar la altura de #undo/#bomb. */
 .tap-44 { min-height: 44px; min-width: 44px; }
 
+/* Panel "Ver jugada" (sub-bloque 2d): NO modal, vive entre .actions y el
+   tablero y se abre con #replay (aria-controls). [hidden] gana a display. */
+#replay-panel {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px;
+  background: var(--board);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+#replay-panel[hidden] { display: none; }
+#replay-panel label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ink-dim);
+}
+#replay-input {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--cell);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 10px;
+}
+.replay-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* Reto diario activo (D5c): aria-pressed lo escribe game.js al arrancar un
    reto. Mismo tratamiento visual que .icon-btn.armed. Los colores salen de
    las variables del tema (--accent / --bg), así que UNA regla sirve para el

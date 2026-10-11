@@ -230,7 +230,9 @@ describe("reto diario (UI, Task 11)", () => {
       await juego.compartir();
 
       expect(share).toHaveBeenCalledTimes(1);
-      expect(share.mock.calls[0][0].text).toMatch(/^Reto diario \d{4}-\d{2}-\d{2}: \d+ puntos\. ¿Puedes superarme\?$/);
+      // Con secuencia grabada (2d) el texto añade el código de replay al final;
+      // sin él (o tras una bomba, I1) se queda en solo puntuación.
+      expect(share.mock.calls[0][0].text).toMatch(/^Reto diario \d{4}-\d{2}-\d{2}: \d+ puntos\. ¿Puedes superarme\?( Reproduce: 2048reto:\d{4}-\d{2}-\d{2}:[LRUD]+)?$/);
     } finally {
       delete navigator.share;
     }

@@ -37,9 +37,22 @@ if (typeof document !== "undefined") {
         <button class="btn ghost icon-btn tap-44" id="daily" aria-pressed="false" aria-label="Reto diario">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
         </button>
+        <button class="btn ghost icon-btn tap-44" id="replay"
+                aria-label="Ver jugada" aria-expanded="false" aria-controls="replay-panel">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
+        </button>
         <button class="btn ghost icon-btn tap-44" id="share" aria-label="Compartir tablero">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
         </button>
+      </div>
+      <div id="replay-panel" hidden>
+        <label for="replay-input">Pega el mensaje o el código de una jugada compartida</label>
+        <textarea id="replay-input" rows="2" autocomplete="off" spellcheck="false"></textarea>
+        <div class="replay-actions">
+          <button class="btn tap-44" id="replay-start">Reproducir</button>
+          <button class="btn ghost tap-44" id="replay-cancel">Cancelar</button>
+          <button class="btn tap-44" id="replay-stop" hidden>Parar</button>
+        </div>
       </div>
       <div class="board-wrap">
         <div id="board" class="board" tabindex="-1"></div>
