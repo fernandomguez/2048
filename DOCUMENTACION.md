@@ -169,7 +169,7 @@ npm run iconos  # regenera los 2 PNG de icons/ (SOLO desarrollo: no forma
 
 Orden recomendado antes de commit: `npm run lint` → `npm test`.
 
-## 6. Estado actual de git — ✅ **TODO COMMITEADO** (auditoría 2026-10-03 · Bloque 1 2026-10-04)
+## 6. Estado actual de git — ✅ **TODO COMMITEADO** (auditoría 2026-10-03 · Bloque 1 y Bloque 3, 2026-10-04/10)
 
 Se aplicó el plan de commits atómicos con el skill `git-commit-planner`.
 Sobre `a0dee4a`, los 7 commits del plan son (a ellos se suman los de
@@ -200,15 +200,17 @@ Estado:
 
 - Working tree limpio tras los commits del **Bloque 1 — Jugabilidad** (2026-10-04:
   animación con identidad de nodos, puntos flotantes, sonido/háptica con
-  interruptor y partida en curso; 64 → 142 tests). Ver `git log` desde `3837b55`.
+  interruptor y partida en curso; 64 → 142 tests) y del **Bloque 3 — PWA**
+  (2026-10-10: `482a121` código+tests+assets y `a421eb0` documentación;
+  142 → 167 tests). Ver `git log` desde `3837b55`.
 - `.opencode/` está en `.gitignore` (configuración local del agente, no del
   proyecto): el estado del pipeline multiagente vive en `.opencode/workflow/`
   solo en disco.
-- **⚠️ SIN PUSH:** `origin/main` está por detrás; todos los commits de la
-  auditoría, del Bloque 1 y del **Bloque 3 (Tanda B)** siguen locales (conteo:
-  `git rev-list --count origin/main..HEAD`). **Esta fase tampoco hace push**
-  (decisión D12 del plan del Bloque 3): el push y la activación del CI los
-  decide el usuario al final. Ver §8.5.
+- **⚠️ SIN PUSH:** `origin/main` está por detrás (**`git rev-list --count
+  origin/main..HEAD` = 17**): los commits de la auditoría, del Bloque 1 y del
+  Bloque 3 siguen locales. **Esta fase tampoco hace push** (decisión D12 del
+  plan del Bloque 3): el push y la activación del CI los decide el usuario al
+  final. Ver §8.5.
 - CI funcionará en el primer push (ya existe `package-lock.json`).
 
 ## 7. Validación final
@@ -288,10 +290,11 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 
 > Propuesta de 2026-10-03 para que el juego "deje de ser simple" y se convierta
 > en una app como tal. **El Bloque 1 está HECHO** (2026-10-04) y **el Bloque 3
-> (PWA) también** (2026-10-04, detalle más abajo); **solo queda el Bloque 2**
-> sin tocar. El primer paso (ordenar el historial en commits atómicos, el
-> "Bloque 4" original) ya estaba completo; el orden sugerido era **Bloque 1 →
-> PWA (Bloque 3) → Bloque 2**, así que el siguiente en la cola es el 2.
+> (PWA) también** (2026-10-04, commiteado el 2026-10-10); del **Bloque 2** ya
+> están **aprobados el análisis y el plan del sub-bloque 2a** (reto diario +
+> power-ups, 2026-10-10) y lo que falta es **implementarlo**. El primer paso
+> (ordenar el historial en commits atómicos, el "Bloque 4" original) ya estaba
+> completo; el orden seguido fue **Bloque 1 → PWA (Bloque 3) → Bloque 2**.
 
 ### Bloque 1 — Se siente jugable (impacto alto, esfuerzo medio) — ✅ HECHO (2026-10-04)
 
@@ -321,7 +324,7 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 > 9 ficheros** (los 64 originales intactos + traza, `esPartidaValida`,
 > animación, feedback, restauración, arranque e integración).
 
-### Bloque 2 — Profundidad (retención)
+### Bloque 2 — Profundidad (retención) — 🟡 **2a PLANIFICADO (2026-10-10), 2b/2c aplazados**
 
 - **Tamaños de tablero**: 3×3 / 4×4 / 5×5 / 6×6 (`TAMANO` ya es constante
   paramétrica; ojo con el CSS y con el cálculo del índice de celda).
@@ -333,10 +336,24 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 - **Progresión de power-ups**: ganar deshacer/bomba por hitos (llegar a 512,
   etc.) en vez de números fijos.
 
+**Estado por sub-bloque** (decisiones de producto en
+`.opencode/workflow/outputs/01-analysis.md` §7):
+
+| Sub-bloque | Estado | Decisión clave ya tomada |
+| --- | --- | --- |
+| **2a** reto diario + power-ups por hitos | ✅ análisis y plan **aprobados**; **pendiente implementar** (fases 03-06) | semilla local `YYYY-MM-DD`, intentos ilimitados, botón `#daily`, récord compartido; +1 deshacer al 128/512/1024 y +1 bomba al 256/2048 **sobre los iniciales**; `rngEstado` en `partida2048` y **backfill sin conceder** en guardados antiguos |
+| **2b** tamaños de tablero | ⏸ aplazado | **Opción B: derivar el tamaño del propio tablero** (`matriz.length`) — exige aprobación explícita de la línea roja "algoritmo intacto" al abrir ese pipeline; `game-share.js:224` también divide entre 4 |
+| **2c** panel de estadísticas | ⏸ aplazado | **clave nueva `estadisticas2048`** + **panel no modal** (no romper el invariante de 2 `role="dialog"`) |
+
+Informes del pipeline: `.opencode/workflow/outputs/01-analysis.md` y
+`02-plan.md` (12 tasks en 2 tandas). El siguiente paso es la fase
+**03-implementation** de ese plan.
+
 ### Bloque 3 — Que sea "una app" literalmente — ✅ HECHO (2026-10-04)
 
-Alcance P0..P3 de `01-analysis.md`, implementado en 11 tasks
-(`.opencode/workflow/outputs/02-plan.md`); **sin dependencias nuevas, sin
+Alcance P0..P3 de `.opencode/workflow/outputs/bloque-3/01-analysis.md`,
+implementado en 11 tasks
+(`.opencode/workflow/outputs/bloque-3/02-plan.md`); **sin dependencias nuevas, sin
 build, sin backend**.
 
 - **P0 — Instalable y offline** ✅
@@ -384,7 +401,11 @@ documenta (`AGENTS.md`/`DOCUMENTACION.md`) · D12 **sin push** en esta fase.
 
 > Validación del Bloque 3: `npm run lint` → **0** y `npm test` → **167 tests
 > en 11 ficheros** (los 142 del Bloque 1 intactos + 14 de `pwa` + 11 de
-> `share`). **⏳ Pendiente:** verificación manual en Chrome (Task 12) — la CI
-> no cubre service worker, canvas ni Web Share; checklist en `02-plan.md`
+> `share`). Revisión de la fase 04 cerrada el **2026-10-10** (correcciones de
+> documentación F1-F7, comentario de `sw.js` y hardening de `compartir()`; ver
+> `outputs/bloque-3/05-fix.md` y `06-final-validation.md`) y **commiteada** en
+> `482a121` + `a421eb0`.
+> **⏳ Pendiente:** verificación manual en Chrome (Task 12) — la CI no cubre
+> service worker, canvas ni Web Share; checklist en `outputs/bloque-3/02-plan.md`
 > (manifest, SW `activated`, caché `2048-v1`, offline, captura, Web Share e
 > instalación).
