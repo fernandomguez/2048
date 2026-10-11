@@ -17,6 +17,11 @@ build de producción.
   la vibración solo funciona en navegadores con soporte).
 - **Partida guardada automáticamente**: al recargar o volver atrás sigues
   donde estabas (tablero, puntos, deshacer y bombas).
+- **Reto diario**: el mismo tablero determinista cada día (por semilla de la
+  fecha local), con intentos ilimitados.
+- **Reproduce mi jugada**: al compartir en modo reto se añade un código
+  `2048reto:<fecha>:<secuencia>`; pégalo en "Ver jugada" y el juego
+  reproduce la partida entera sobre la semilla de ese día.
 - Pantalla de bienvenida, overlays de victoria y fin de partida.
 - Diseño adaptado a móvil, escritorio y pantallas horizontales bajas.
 
@@ -59,7 +64,7 @@ No hay build: los archivos de `game.js`, `game-core.js`, `game-fx.js`,
 | `game.js` | Capa UI: entradas, render, overlays, power-ups, persistencia |
 | `game-fx.js` | Efectos: slide/pop/flotantes, sonido Web Audio y háptica (sin estado de juego) |
 | `style.css` | Temas (claro/oscuro) y layout `dvh` |
-| `tests/` | 13 suites: núcleo puro, flujos de UI (jsdom), markup real, persistencia, animación, feedback, restauración, arranque, integración, PWA, compartir, power-ups por hitos y reto diario |
+| `tests/` | 14 suites: núcleo puro, flujos de UI (jsdom), markup real, persistencia, animación, feedback, restauración, arranque, integración, PWA, compartir, power-ups por hitos, reto diario y replay del reto |
 
 ## Tecnologías
 

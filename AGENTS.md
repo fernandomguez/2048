@@ -11,14 +11,16 @@ Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funcio
 - `index.html` — marcado, meta tags y accesibilidad; carga `game.js` como `<script type="module">`.
 - `game-core.js` — lógica pura del juego: recibe datos y devuelve datos. **Sin DOM,
   sin localStorage, sin eventos.** Toda regla nueva va aquí (incluidos
-  `semillaDeFecha`/`siguienteRng` del reto diario y
-  `calcularHitos`/`hitosAlcanzados` de los power-ups por hitos).
+  `semillaDeFecha`/`siguienteRng` del reto diario,
+  `calcularHitos`/`hitosAlcanzados` de los power-ups por hitos y
+  `parsearCodigoJugada`/`reproducirSecuencia` del replay).
 - `game.js` — capa UI: entradas, render, overlays, power-ups, persistencia,
   compartir (`obtenerSnapshot()`, `compartir()`, `DURACION_TOAST`) e
   instalación (evento `beforeinstallprompt`). Importa `game-core.js`,
   `game-fx.js` y `game-share.js` y exporta los comandos (`mover`, `deshacer`,
   `toggleBomba`, `nuevaPartida`, `mostrarVictoria`, `mostrarGameOver`,
-  `restaurarPartida`) que usan los tests de flujo.
+  `restaurarPartida`, `reproducirJugada`, `pararReplay`,
+  `INTERVALO_REPLAY`) que usan los tests de flujo.
 - `game-fx.js` — capa de efectos y feedback: slide/pop/fantasmas, puntos
   flotantes `+N`, sonido Web Audio y háptica. Recibe la `traza` de
   `game-core.js` y **sus nodos FX nuevos viven SOLO en `#fx-layer`** (fuera de
@@ -103,13 +105,22 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
   pasos por spawn (D7), mismo día ⇒ mismo tablero (`vi.useFakeTimers({ toFake:
   ["Date"] })`), otro día ⇒ otro tablero, salida a modo normal con
   `#new-game`, snapshot/compartir con fecha y `pagehide`.
+- `tests/replay.test.js` — replay del reto (sub-bloque 2d): núcleo PURO
+  (`parsearCodigoJugada`, `reproducirSecuencia` con referencia `2026-10-10:
+  LDRU`, validación del campo `movimientos`) **y** UI con fake timers
+  (`INTERVALO_REPLAY` real): grabación por turno, deshacer (I2), bomba (I1),
+  preservación del intento con cero escrituras (R2), teclado/deshacer/bomba
+  bloqueados durante la reproducción, récord intacto (Task 6), replay que
+  muere sin overlay (R6) y panel `#replay` sin tercer `role="dialog"`.
 - `tests/setup.js` crea el DOM de arranque y **mockea `Math.random` a 0**: en tests
   de UI el tablero inicial es siempre `[[2,2,0,0], ...]` y `mover("left")` produce
   `[[4,2,0,0], ...]` con 4 puntos (2 celdas: la fusión resta una y el spawn añade otra).
-  **Única suite existente editada en el 2a**: añadió el botón `#daily` a `.actions`
-  (antes de `#share`), igual que `index.html`.
+  **Suites existentes editadas**: en el 2a añadió el botón `#daily` a `.actions`
+  (antes de `#share`) y en el 2d el botón `#replay` + panel `#replay-panel`
+  (igual que `index.html`); `reto.test.js` adaptó su regex de compartir (R8,
+  autorizado) para aceptar el sufijo ` Reproduce: 2048reto:…`.
 
-Total: **205 tests en 13 ficheros** (`npm test` debe dar todo en verde).
+Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
 
 ## Convenciones del repo
 
@@ -148,6 +159,21 @@ Total: **205 tests en 13 ficheros** (`npm test` debe dar todo en verde).
   vive en `historial`** (D7). La fecha es local (`hoy()` → `YYYY-MM-DD`), los
   intentos son ilimitados (mismo día ⇒ misma secuencia) y el récord se
   comparte con el de siempre (`stats2048.record`, D5d).
+- **Replay del reto (sub-bloque 2d, "Reproduce mi jugada")**: el código
+  `2048reto:<YYYY-MM-DD>:<LRUD…>` (máx. 5000) determina la partida ENTERA:
+  `reproducirSecuencia()` en `game-core.js` es un **dry-run puro** (un
+  movimiento sin cambio NO avanza el RNG) y en la UI `reproducir()` alimenta
+  `mover()` en bucle de `setTimeout` (`INTERVALO_REPLAY = 300`, exportado).
+  Mientras dura, el flag `reproduciendo` **silencia récord, guardado,
+  overlays de fin (R6) y la entrada del jugador** (teclado/swipe/deshacer/
+  bomba); el intento del jugador vive en `snapshotReplay` y `partida2048` NO
+  se toca (R2, cero escrituras testeado). La grabación va solo en modo reto:
+  cada movimiento con cambio apendea su carácter (`CARACTERES_REPLAY`) y el
+  deshacer hace pop (I2); **la bomba limpia la secuencia** (I1: muta el
+  tablero sin RNG ⇒ no reproducible). El panel `#replay-panel` NO es modal
+  (el invariante siguen siendo 2 `role="dialog"`) y va entre `.actions` y el
+  tablero; `#share` sigue siendo el último de `.actions`. Cualquier fecha
+  válida se puede reproducir (R5), no solo la de hoy.
 - **Único test existente con una línea adaptada en el 2a**: `animacion.test.js`
   "deshacer() durante la ventana cancela el overlay" jugaba una partida
   determinista hasta el tablero bloqueado, por lo que alcanzaba la ficha 128 y
@@ -165,7 +191,8 @@ Total: **205 tests en 13 ficheros** (`npm test` debe dar todo en verde).
   OPCIONALES del sub-bloque 2a** (sin migración, `v` sigue en 1): `modo`
   (`"normal" | "reto"`, omitido en normal), `hitos` (umbrales de power-ups ya
   concedidos, omitido si es `[]`) y, SOLO en modo reto, `dia`
-  (`YYYY-MM-DD`) y `rngEstado` (entero). `guardarPartida()` los emite
+  (`YYYY-MM-DD`), `rngEstado` (entero) y `movimientos` (secuencia LRUD del
+  intento, sub-bloque 2d; omitido si es `""`). `guardarPartida()` los emite
   únicamente cuando se alejan del valor por defecto — así un guardado de
   partida normal conserva exactamente las 7 claves que espera
   `restauracion.test.js:82`. Al restaurar, lo que no viaja usa el default:

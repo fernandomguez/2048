@@ -161,7 +161,7 @@ Fase 2, inherente a usar ESM sin bundler). Soluciones implementadas:
 ```bash
 npm install     # solo devDependencies
 npm start       # servidor local → http://localhost:8000
-npm test        # 205 tests (13 ficheros)
+npm test        # 230 tests (14 ficheros)
 npm run lint    # ESLint
 npm run iconos  # regenera los 2 PNG de icons/ (SOLO desarrollo: no forma
                 # parte de npm test ni de la CI; los binarios se commitean)
@@ -215,7 +215,7 @@ Estado:
 
 ## 7. Validación final
 
-- **Tests** → ✅ 64/64 (validación de esa fase; recuento actual: **205 en 13
+- **Tests** → ✅ 64/64 (validación de esa fase; recuento actual: **230 en 14
   ficheros**, ver §5 y §10)
 - **Lint** → ✅ 0 problemas
 - **Build** → No aplica (no hay build de producción, por diseño)
@@ -277,12 +277,13 @@ icons/         → 2048.svg · 2048-maskable.svg · apple-touch-icon-180.png
 scripts/generar-iconos.mjs + scripts/lib/ctx-software.mjs
                  → npm run iconos (SOLO desarrollo, sin dependencias)
 
-tests/ (Vitest: núcleo en nodo, UI en jsdom) — 205 tests en 13 ficheros
+tests/ (Vitest: núcleo en nodo, UI en jsdom) — 230 tests en 14 ficheros
   originales: game-core · flujo · markup · persistencia
   Bloque 1:   animacion · feedback · restauracion · arranque · integracion
   Bloque 3:   pwa · share
   Bloque 2a:  hitos · reto
-  setup.js (fixture DOM + matchMedia stub + Math.random = 0 + botón #daily)
+  Bloque 2d:  replay
+  setup.js (fixture DOM + matchMedia stub + Math.random = 0 + #daily + #replay-panel)
 scripts/servidor.mjs  → npm start (dev, sin dependencias)
 .github/workflows/ci.yml → lint + tests en push/PR
 ```
@@ -291,9 +292,9 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 
 > Propuesta de 2026-10-03 para que el juego "deje de ser simple" y se convierta
 > en una app como tal. **El Bloque 1 está HECHO** (2026-10-04) y **el Bloque 3
-> (PWA) también** (2026-10-04, commiteado el 2026-10-10); del **Bloque 2**, el
-> **sub-bloque 2a está IMPLEMENTADO** (reto diario + power-ups, 2026-10-11,
-> fases 03-06 del pipeline) y siguen **aplazados 2b y 2c**. El primer paso
+> (PWA) también** (2026-10-04, commiteado el 2026-10-10); del **Bloque 2**, los
+> **sub-bloques 2a (reto diario + power-ups) y 2d (replay del reto) están
+> IMPLEMENTADOS** (ambos el 2026-10-11) y siguen **aplazados 2b y 2c**. El primer paso
 > (ordenar el historial en commits atómicos, el "Bloque 4" original) ya estaba
 > completo; el orden seguido fue **Bloque 1 → PWA (Bloque 3) → Bloque 2**.
 
@@ -325,7 +326,7 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 > 9 ficheros** (los 64 originales intactos + traza, `esPartidaValida`,
 > animación, feedback, restauración, arranque e integración).
 
-### Bloque 2 — Profundidad (retención) — 🟡 **2a HECHO (2026-10-11), 2b/2c aplazados**
+### Bloque 2 — Profundidad (retención) — 🟢 **2a y 2d HECHOS (2026-10-11), 2b/2c aplazados**
 
 - **Tamaños de tablero**: 3×3 / 4×4 / 5×5 / 6×6 (`TAMANO` ya es constante
   paramétrica; ojo con el CSS y con el cálculo del índice de celda).
@@ -334,8 +335,12 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 - **Reto diario con semilla fija**: `agregarFicha` ya inyecta `rnd`, así que
   hacer una partida determinista (mismo tablero para todos + código
   compartible) es **muy barato** y es el gancho de retención más clásico.
+  ✅ en el sub-bloque 2a, con su extensión de replay en el 2d.
 - **Progresión de power-ups**: ganar deshacer/bomba por hitos (llegar a 512,
   etc.) en vez de números fijos. ✅ en el sub-bloque 2a.
+- **Replay de jugadas compartidas**: "Reproduce mi jugada" — reproducir la
+  secuencia LRUD de un reto ajeno sobre la semilla de su fecha. ✅ en el
+  sub-bloque 2d.
 
 **Sub-bloque 2a — implementado (2026-10-11)** ✅:
 
@@ -372,19 +377,65 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
   reescrita el caso de la ventana de `animacion.test.js` (excepción
   autorizada). No reabrir sin acuerdo explícito.
 
+**Sub-bloque 2d — implementado (2026-10-11)** ✅ ("Reproduce mi jugada",
+pipeline completo fases 01-06):
+
+- **Código de replay** — `2048reto:<YYYY-MM-DD>:<LRUD…>` (máx.
+  `MAX_MOVIMIENTOS_REPLAY = 5000`). `parsearCodigoJugada()` acepta el mensaje
+  completo del compartir o el código suelto y devuelve `{fecha, movimientos}`;
+  la forma inválida ⇒ `null` y toast "Código de jugada no válido". Cualquier
+  fecha válida se puede reproducir (R5), no solo la de hoy.
+- **Dry-run puro en `game-core.js`** — `reproducirSecuencia(fecha, seq)`
+  reconstruye la partida entera sin tocar la UI; un movimiento **sin cambio
+  NO avanza el RNG** (referencia: `"RL"` ≡ `"L"` en `2026-11-01`). La misma
+  fecha + la misma secuencia ⇒ siempre el tablero exacto.
+- **Grabación en `game.js`** — en modo reto cada movimiento con cambio
+  apendea su carácter (`CARACTERES_REPLAY`); el **deshacer hace pop** (I2,
+  1:1 con `historial`) y **la bomba limpia la secuencia** (I1: muta el
+  tablero sin RNG ⇒ el intento deja de ser reproducible y el compartir vuelve
+  a solo puntuación). `movimientos` viaja en `partida2048` SOLO en modo reto
+  (esquema retrocompatible, campo opcional validado por `esPartidaValida`).
+- **Reproducción sin pisar al jugador (R2)** — `reproducir()` alimenta
+  `mover()` en bucle de `setTimeout` (`INTERVALO_REPLAY = 300`, exportado;
+  nunca `transitionend`). El intento del jugador se congela en
+  `snapshotReplay` y se restaura al terminar o parar: `partida2048` NO recibe
+  **ninguna escritura** durante el replay (test de igualdad de cadena). El
+  flag `reproduciendo` silencia récord (Task 6), guardado, overlays de fin
+  (R6) y la entrada del jugador (teclado, swipe, deshacer, bomba).
+- **Panel no modal** — botón `#replay` en `.actions` ANTES de `#share`
+  (sigue siendo el último) con `aria-expanded`/`aria-controls`; el panel
+  `#replay-panel` (textarea + Reproducir/Cancelar/Parar) vive entre
+  `.actions` y el tablero y **no es un `role="dialog"`** (el invariante
+  sigue siendo exactamente 2). "Parar" devuelve el tablero del jugador.
+- **Compartir con código (Task 10)** — el texto del reto añade al final
+  ` Reproduce: 2048reto:<dia>:<seq>`; sin secuencia grabada (partida limpia
+  o tras bomba) el texto es el de siempre. Regex de `reto.test.js` adaptada
+  (R8, autorizado por el usuario).
+- **Validación** — `npm run lint` → **0** y `npm test` → **230 tests en 14
+  ficheros** (las 13 suites anteriores intactas salvo la regex de compartir
+  de `reto.test.js` —R8—; la nueva `tests/replay.test.js` aporta 25: 13 de
+  núcleo puro y 12 de UI). Bombas de referencia: secuencia muerta de 41
+  movimientos en `2026-10-10` (tablero lleno, score 140) para el test R6.
+- **Sin anti-cheat (R7)** — decisión explícita: el código es texto plano y
+  cualquiera puede fabricarse uno; la reproducibilidad importa más que
+  proteger un marcador local.
+
 **Estado por sub-bloque** (decisiones de producto en
 `.opencode/workflow/outputs/01-analysis.md` §7):
 
 | Sub-bloque | Estado | Decisión clave ya tomada |
 | --- | --- | --- |
 | **2a** reto diario + power-ups por hitos | ✅ **IMPLEMENTADO (2026-10-11)** — fases 03-06 del pipeline | semilla local `YYYY-MM-DD`, intentos ilimitados, botón `#daily`, récord compartido; +1 deshacer al 128/512/1024 y +1 bomba al 256/2048 **sobre los iniciales**; `rngEstado` en `partida2048` y **backfill sin conceder** en guardados antiguos |
+| **2d** replay del reto ("Reproduce mi jugada") | ✅ **IMPLEMENTADO (2026-10-11)** — pipeline completo 01-06 | código `2048reto:<fecha>:<LRUD…>` (máx. 5000), dry-run puro en `game-core.js`, grabación con pop en deshacer (I2) y limpieza con bomba (I1), intento preservado sin escrituras (R2), sin overlays ni récord durante la reproducción (R6/Task 6), panel **no modal**, cualquier fecha reproducible (R5), sin anti-cheat (R7) |
 | **2b** tamaños de tablero | ⏸ aplazado | **Opción B: derivar el tamaño del propio tablero** (`matriz.length`) — exige aprobación explícita de la línea roja "algoritmo intacto" al abrir ese pipeline; `game-share.js:224` también divide entre 4 |
 | **2c** panel de estadísticas | ⏸ aplazado | **clave nueva `estadisticas2048`** + **panel no modal** (no romper el invariante de 2 `role="dialog"`) |
 
-Informes del pipeline del 2a en `.opencode/workflow/outputs/`:
-`01-analysis.md`, `02-plan.md`, `03-implementation.md`, `04-review.md`,
-`05-fix.md` y `06-final-validation.md`. **Sin push** (D12): los cambios del 2a
-quedan en el working tree hasta que el usuario decida commitearlos.
+Informes del pipeline del 2a archivados en
+`.opencode/workflow/outputs/reto-diario-2a/`; los del 2d viven en
+`.opencode/workflow/outputs/` (`01-analysis.md`, `02-plan.md`,
+`03-implementation.md`, `04-review.md`, `05-fix.md` y
+`06-final-validation.md`). `.opencode/` está en `.gitignore`: los informes
+no se commitean.
 
 ### Bloque 3 — Que sea "una app" literalmente — ✅ HECHO (2026-10-04)
 
