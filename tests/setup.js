@@ -34,6 +34,9 @@ if (typeof document !== "undefined") {
         <button class="btn ghost icon-btn tap-44" id="install" hidden aria-label="Instalar la aplicación">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
         </button>
+        <button class="btn ghost icon-btn tap-44" id="daily" aria-pressed="false" aria-label="Reto diario">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
+        </button>
         <button class="btn ghost icon-btn tap-44" id="share" aria-label="Compartir tablero">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"></svg>
         </button>

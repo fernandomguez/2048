@@ -173,6 +173,16 @@ h1 {
    (#install y #share): solo ellos, sin agravar la altura de #undo/#bomb. */
 .tap-44 { min-height: 44px; min-width: 44px; }
 
+/* Reto diario activo (D5c): aria-pressed lo escribe game.js al arrancar un
+   reto. Mismo tratamiento visual que .icon-btn.armed. Los colores salen de
+   las variables del tema (--accent / --bg), así que UNA regla sirve para el
+   tema claro y el oscuro (R8) sin duplicar bloques. */
+#daily[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
 /* Interruptor de feedback (sonido + háptica): objetivo táctil >= 44 px
    (WCAG 2.5.5) y estado visible del switch, que role="switch" no pinta
    por sí solo. aria-checked lo gestiona game.js. */

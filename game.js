@@ -15,6 +15,11 @@ import {
   esGameOver,
   hayVictoria,
   esPartidaValida,
+  semillaDeFecha,
+  siguienteRng,
+  HITOS_POWERUPS,
+  calcularHitos,
+  hitosAlcanzados,
 } from "./game-core.js";
 import {
   configurarFx,
@@ -43,6 +48,7 @@ const bombBtn   = document.getElementById("bomb");
 const undoCount = document.getElementById("undo-count");
 const bombCount = document.getElementById("bomb-count");
 const welcomeEl = document.getElementById("welcome");
+const dailyBtn   = document.getElementById("daily");
 const shareBtn   = document.getElementById("share");
 const installBtn = document.getElementById("install");
 const statusEl   = document.getElementById("status");
@@ -129,6 +135,15 @@ let deshacerRestantes = USOS_DESHACER_INICIALES;
 let modoBomba = false;
 let bombasRestantes = BOMBAS_INICIALES;
 
+// --- MODO DE PARTIDA (sub-bloque 2a) ---
+// "normal" o "reto" (reto diario con semilla fija, D5). En modo reto la
+// aleatoriedad sale de un RNG con estado EXPLÍCITO (siguienteRng) que viaja
+// en partida2048, no en el historial: el deshacer no rebobina el RNG (D7).
+let modo = "normal";
+let diaReto = null;   // "YYYY-MM-DD" local, solo en modo reto
+let rngEstado = 0;    // estado del RNG del reto (entero serializable)
+let hitos = [];       // umbrales de power-ups ya concedidos (D6)
+
 // --- MODALES ---
 // Un modal (bienvenida o fin de partida) impide jugar. Este es el ÚNICO sitio
 // que lo decide: mover() y toggleBomba() lo consultan, así que teclado, swipe
@@ -208,10 +223,53 @@ function render() {
 }
 
 // --- SPAWN ---
+// Fecha local "YYYY-MM-DD" (D5a): la capa UI es quien conoce Date, el núcleo
+// solo recibe la cadena ya formada.
+function hoy() {
+  const fecha = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return fecha.getFullYear() + "-" + pad(fecha.getMonth() + 1) + "-" + pad(fecha.getDate());
+}
+
+// Siguiente número del RNG del reto: el estado avanza y queda en la variable
+// de módulo, listo para persistirse con la partida.
+function rndReto() {
+  const paso = siguienteRng(rngEstado);
+  rngEstado = paso.estado;
+  return paso.valor;
+}
+
 function spawn() {
-  const resultado = agregarFicha(board);
+  // En modo reto NO se toca Math.random: este ternario es su ÚNICA
+  // referencia en game.js (determinismo total dados el estado y los movimientos).
+  const resultado = agregarFicha(board, modo === "reto" ? rndReto : Math.random);
   board = resultado.matriz;
   if (resultado.posicion) ultimaFichaNueva = resultado.posicion;
+}
+
+// --- HITOS DE POWER-UPS (D6) ---
+// Se evalúa tras spawn() y ANTES de guardarPartida(): el propio guardado ya
+// persiste `hitos`, así que no hay doble concesión al recargar (R2). Los
+// usos iniciales (3/1) no cambian: el hito es un EXTRA sobre ellos.
+function aplicarHitos() {
+  const res = calcularHitos(board, hitos);
+  if (res.ganados.deshacer === 0 && res.ganados.bomba === 0) return;
+
+  const nuevos = res.concedidos.filter(umbral => !hitos.includes(umbral));
+  hitos = res.concedidos;
+
+  if (res.ganados.deshacer > 0) {
+    const umbral = nuevos.filter(u => HITOS_POWERUPS.deshacer.includes(u)).pop();
+    deshacerRestantes += res.ganados.deshacer;
+    mostrarToast("+1 deshacer: ficha " + umbral);
+    actualizarBotonDeshacer();
+  }
+  if (res.ganados.bomba > 0) {
+    const umbral = nuevos.filter(u => HITOS_POWERUPS.bomba.includes(u)).pop();
+    bombasRestantes += res.ganados.bomba;
+    mostrarToast("+1 bomba: ficha " + umbral);
+    actualizarBotonBomba();
+  }
 }
 
 // --- MOVIMIENTO COMPLETO ---
@@ -232,6 +290,7 @@ export function mover(direccion) {
     score += resultado.puntos;
     actualizarRecord();
     spawn();
+    aplicarHitos();      // hitos del nuevo tablero (D6), antes de persistir
     guardarPartida(); // el turno cambió la partida en curso: se persiste
   } else {
     ultimaFichaNueva = null;
@@ -463,12 +522,21 @@ export function mostrarGameOver() {
 }
 
 // --- NUEVA PARTIDA ---
-// Única fuente de verdad para iniciar una partida: la usa el botón, el overlay
-// y la inicialización al cargar la página.
-export function nuevaPartida() {
+// Única fuente de verdad para iniciar una partida: la usan el botón, el
+// overlay, el reto diario y la inicialización al cargar la página.
+// El modo entra como PARÁMETRO EXPLÍCITO en empezarPartida(); nuevaPartida()
+// se mantiene SIN parámetros (riesgo 1) porque sus llamantes son listeners de
+// click (#new-game y los botones de los overlays) que le ENTREGAN el Event como
+// primer argumento: con firma "nuevaPartida(modo)" se arrancaría la partida en
+// modo "Event" cada vez que se pulsara un botón.
+function empezarPartida(nuevoModo) {
   limpiarFx(); // la capa visual se vacía en cada reinicio
   cancelarOverlayPendiente(); // ningún overlay de la partida anterior se cuela
   borrarPartida(); // la partida anterior deja de estar "en curso"
+  modo = nuevoModo;
+  diaReto = modo === "reto" ? hoy() : null;
+  rngEstado = modo === "reto" ? semillaDeFecha(diaReto) : 0; // semilla del día
+  hitos = [];
   board = crearTablero();
   score = 0;
   victoriaAvisada = false;
@@ -484,6 +552,17 @@ export function nuevaPartida() {
   render();
   actualizarBotonDeshacer();
   actualizarBotonBomba();
+  actualizarBotonReto();
+}
+
+export function nuevaPartida() {
+  empezarPartida("normal");
+}
+
+// El botón de reto refleja el modo con aria-pressed (el estado vive en la
+// variable `modo`, no en el DOM).
+function actualizarBotonReto() {
+  dailyBtn.setAttribute("aria-pressed", String(modo === "reto"));
 }
 
 //Para el tema claro / oscuro
@@ -509,6 +588,9 @@ function guardarRecord(valor) {
 // stats2048), sin modoBomba (se restaura en false) ni ultimaFichaNueva (solo
 // era animación → null). El historial SIEMPRE viaja: sin él el deshacer
 // moriría al recargar.
+// Sub-bloque 2a: campos OPCIONALES (v sigue siendo 1, sin migración):
+// { modo, hitos } y, solo en modo reto, { dia, rngEstado }. Si no viajan,
+// los valores por defecto son modo normal y el backfill de hitos (D8).
 // Se guarda en pagehide y en visibilitychange con document.hidden; NUNCA en
 // beforeunload/unload (sin bloqueadores ni diálogos de salida).
 const CLAVE_PARTIDA = "partida2048";
@@ -524,6 +606,16 @@ function guardarPartida() {
       victoriaAvisada,
       historial,
     };
+    // Sub-bloque 2a: los campos NUEVOS solo viajan cuando se alejan de los
+    // valores por defecto (modo normal sin hitos). Así un guardado de partida
+    // normal conserva exactamente el esquema v1 byte a byte — lo exige
+    // restauracion.test.js:82 — y al restaurar el backfill reconstruye `hitos`.
+    if (modo === "reto") {
+      partida.modo = "reto";
+      partida.dia = diaReto;
+      partida.rngEstado = rngEstado;
+    }
+    if (hitos.length > 0) partida.hitos = hitos;
     localStorage.setItem(CLAVE_PARTIDA, JSON.stringify(partida));
   } catch { /* sin almacenamiento disponible */ }
 }
@@ -565,9 +657,20 @@ export function restaurarPartida() {
   modoBomba = false;        // el modo bomba no se persiste (se reactiva a mano)
   boardEl.classList.remove("modo-bomba");
 
+  // Modo y power-ups (sub-bloque 2a): campos OPCIONALES. Un guardado antiguo
+  // no los trae → modo normal y, para `hitos`, backfill SIN conceder (D8):
+  // los umbrales ya superados por el tablero quedan marcados para no volver a
+  // sumar usos, pero los contadores NO suben (protege arranque.test.js).
+  modo = partida.modo === "reto" ? "reto" : "normal";
+  diaReto = partida.dia ?? null;
+  rngEstado = partida.rngEstado ?? 0;
+  hitos = partida.hitos ?? hitosAlcanzados(partida.board);
+  if (modo === "reto" && diaReto === null) diaReto = hoy(); // nunca "Reto diario null"
+
   render();
   actualizarBotonDeshacer();
   actualizarBotonBomba();
+  actualizarBotonReto();
   return true;
 }
 
@@ -618,6 +721,14 @@ document.getElementById("new-game").addEventListener("click", nuevaPartida);
 undoBtn.addEventListener("click", deshacer);
 bombBtn.addEventListener("click", toggleBomba);
 
+// Reto diario (D5c/#daily): arranca una partida determinista con la semilla
+// de HOY (fecha local) e informa del día por toast. #share sigue siendo el
+// último hijo de .actions (contrato de orden de tabulación).
+dailyBtn.addEventListener("click", () => {
+  empezarPartida("reto");
+  mostrarToast("Reto diario " + diaReto);
+});
+
 // ============================================================
 //  COMPARTIR (P1) E INSTALACIÓN (P2)
 //  Bloque opt-in y silencioso: CERO escrituras en localStorage, CERO nodos
@@ -651,6 +762,10 @@ export function obtenerSnapshot() {
     score,
     best,
     tema: document.documentElement.getAttribute("data-theme") || "dark",
+    // Aditivo (sub-bloque 2a): el modo y el día del reto viajan en la captura
+    // y en el texto compartible. `dia` es null en modo normal.
+    modo,
+    dia: diaReto,
   };
 }
 
@@ -702,7 +817,11 @@ async function crearCaptura(snapshot) {
 // capturar. Cada paso lleva su feature-detect (en jsdom todos ausentes).
 export async function compartir() {
   const snapshot = obtenerSnapshot();
-  const texto = `He hecho ${snapshot.score} puntos en 2048. ¿Puedes superarme?`;
+  // Texto según el modo (D5): el reto comparte su FECHA, que es el código
+  // compartible (el mismo tablero para todos los que juegan ese día).
+  const texto = modo === "reto"
+    ? `Reto diario ${snapshot.dia}: ${snapshot.score} puntos. ¿Puedes superarme?`
+    : `He hecho ${snapshot.score} puntos en 2048. ¿Puedes superarme?`;
 
   // Sin captura (jsdom, canvas roto, etc.) la cadena sigue con los pasos de
   // texto: nunca un rechazo sin capturar.
@@ -823,6 +942,7 @@ document.addEventListener("visibilitychange", () => {
 // Restaura la partida en curso si existe; si no hay (o no es válida),
 // empieza una nueva. Restauración automática, sin diálogo de confirmación.
 if (!restaurarPartida()) nuevaPartida();
+actualizarBotonReto(); // #daily refleja el modo en CUALQUIER arranque
 
 // --- BIENVENIDA (en cada carga de la página, no al reiniciar) ---
 const DURACION_ANIMACION_BIENVENIDA = 220;

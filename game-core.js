@@ -292,6 +292,85 @@ function esBoardNumerico(board) {
   );
 }
 
+// --- RETO DIARIO (D5): RNG SEMBRADO, PURO Y SERIALIZABLE ---
+// La semilla la calcula game.js desde la fecha LOCAL (la capa UI es quien
+// conoce Date): aquí solo se transforma la cadena "YYYY-MM-DD" en un uint32
+// con el hash FNV-1a. Misma fecha ⇒ mismo número, siempre.
+export function semillaDeFecha(fecha) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < fecha.length; i++) {
+    hash ^= fecha.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+// mulberry32 con estado EXPLÍCITO en lugar de una closure que lo captura: el
+// estado entra como parámetro y vuelve como resultado (entero >= 0, seguro
+// para JSON) para poder guardarlo en partida2048 y que el reto continúe idéntico
+// tras recargar (D7: el deshacer NO rebobina este estado).
+export function siguienteRng(estado) {
+  const a = ((estado >>> 0) + 0x6d2b79f5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), a | 1);
+  t = (t + Math.imul(t ^ (t >>> 7), t | 61)) ^ t;
+  return {
+    valor: ((t ^ (t >>> 14)) >>> 0) / 4294967296, // [0, 1)
+    estado: a >>> 0,
+  };
+}
+
+// --- POWER-UPS POR HITOS (D6) ---
+// Extras SOBRE los iniciales (3 deshacer / 1 bomba). Umbrales fijos, iguales
+// en todos los tamaños (D6b). El umbral identifica el recurso: no hay dos
+// umbrales iguales entre deshacer y bomba.
+export const HITOS_POWERUPS = {
+  deshacer: [128, 512, 1024],
+  bomba: [256, 2048],
+};
+
+// Máximo del tablero (0 si todas las celdas están vacías).
+function valorMaximoTablero(board) {
+  let max = 0;
+  for (const fila of board) {
+    for (const valor of fila) {
+      if (valor > max) max = valor;
+    }
+  }
+  return max;
+}
+
+// Concede los umbrales alcanzados por el tablero que aún no estaban en
+// `concedidos`. PURA: no muta board ni concedidos. IDEMPOTENTE: repetir la
+// llamada con el resultado no concede nada más. El `concedidos` devuelto viene
+// ORDENADO de menor a mayor.
+export function calcularHitos(board, concedidos) {
+  const max = valorMaximoTablero(board);
+  const yaConcedidos = new Set(Array.isArray(concedidos) ? concedidos : []);
+  const ganados = { deshacer: 0, bomba: 0 };
+
+  for (const umbral of HITOS_POWERUPS.deshacer) {
+    if (umbral <= max && !yaConcedidos.has(umbral)) {
+      yaConcedidos.add(umbral);
+      ganados.deshacer++;
+    }
+  }
+  for (const umbral of HITOS_POWERUPS.bomba) {
+    if (umbral <= max && !yaConcedidos.has(umbral)) {
+      yaConcedidos.add(umbral);
+      ganados.bomba++;
+    }
+  }
+
+  return { concedidos: [...yaConcedidos].sort((a, b) => a - b), ganados };
+}
+
+// Umbrales ya superados por el tablero, SIN conceder usos: el backfill de los
+// guardados antiguos (D8), que se marca al restaurar para que un movimiento
+// posterior no vuelva a pagar hitos que el tablero ya había alcanzado.
+export function hitosAlcanzados(board) {
+  return calcularHitos(board, []).concedidos;
+}
+
 // Valida la forma de una partida guardada (clave "partida2048").
 // Devuelve booleano y NUNCA lanza: una partida corrupta debe poder
 // descartarse en game.js sin romper el arranque.
@@ -303,6 +382,21 @@ export function esPartidaValida(partida) {
   if (!Number.isInteger(partida.deshacerRestantes) || partida.deshacerRestantes < 0) return false;
   if (!Number.isInteger(partida.bombasRestantes) || partida.bombasRestantes < 0) return false;
   if (typeof partida.victoriaAvisada !== "boolean") return false;
+
+  // --- Campos OPCIONALES del sub-bloque 2a (retrocompatible, Task 3) ---
+  // Regla única: si el campo APARECE tiene que cumplir su forma; si no
+  // aparece, game.js aplica el valor por defecto. Nunca se lanza.
+  if (partida.modo !== undefined && partida.modo !== "normal" && partida.modo !== "reto") return false;
+  if (partida.dia !== undefined
+      && (typeof partida.dia !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(partida.dia))) return false;
+  if (partida.rngEstado !== undefined
+      && (!Number.isInteger(partida.rngEstado) || partida.rngEstado < 0)) return false;
+  if (partida.hitos !== undefined) {
+    if (!Array.isArray(partida.hitos)) return false;
+    const umbralesValidos = new Set([...HITOS_POWERUPS.deshacer, ...HITOS_POWERUPS.bomba]);
+    if (!partida.hitos.every(umbral => umbralesValidos.has(umbral))) return false;
+  }
+
   if (!Array.isArray(partida.historial)) return false;
   return partida.historial.every(entrada =>
     entrada !== null

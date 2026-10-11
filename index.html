@@ -96,6 +96,17 @@
         </svg>
       </button>
 
+      <!-- Reto diario (D5c): partida determinista por fecha local; el mismo
+           tablero para todos los jugadores de ese día. Va ANTES de #share,
+           que sigue siendo el ÚLTIMO de .actions (orden de tabulación). -->
+      <button class="btn ghost icon-btn tap-44" id="daily" aria-pressed="false"
+              aria-label="Reto diario" title="Reto diario: el mismo tablero cada día">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <path d="M8 3v4M16 3v4M3 10h18"/>
+        </svg>
+      </button>
+
       <!-- Compartir: ÚLTIMO de .actions para conservar el orden visual =
            orden de tabulación (mismo patrón que #undo/#bomb). -->
       <button class="btn ghost icon-btn tap-44" id="share"
