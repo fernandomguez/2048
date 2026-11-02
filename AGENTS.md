@@ -176,6 +176,11 @@ Total: **239 tests en 15 ficheros** (`npm test` debe dar todo en verde).
   vive en `historial`** (D7). La fecha es local (`hoy()` → `YYYY-MM-DD`), los
   intentos son ilimitados (mismo día ⇒ misma secuencia) y el récord se
   comparte con el de siempre (`stats2048.record`, D5d).
+- **Replay OCULTO de momento**: el botón `#replay` lleva `hidden` en
+  `index.html` y el código `Reproduce: 2048reto:…` NO se añade al mensaje
+  compartido (`INCLUIR_CODIGO_REPLAY = false` en `game.js`). Toda la lógica,
+  el panel y los tests siguen en pie; para reactivarlo, quita `hidden` y pon
+  la constante a `true`.
 - **Replay del reto (sub-bloque 2d, "Reproduce mi jugada")**: el código
   `2048reto:<YYYY-MM-DD>:<LRUD…>` (máx. 5000) determina la partida ENTERA:
   `reproducirSecuencia()` en `js/game-core.js` es un **dry-run puro** (un

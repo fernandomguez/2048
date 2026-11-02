@@ -398,7 +398,7 @@ describe("replay del reto (UI, Tasks 4-10)", () => {
     }
   });
 
-  it("compartir en reto añade el código de replay al final del texto (Task 10)", async () => {
+  it("compartir en reto: el código de replay solo va si INCLUIR_CODIGO_REPLAY está activo (Task 10)", async () => {
     document.getElementById("daily").click();
     jugarCambio();
 
@@ -408,7 +408,12 @@ describe("replay del reto (UI, Tasks 4-10)", () => {
       await juego.compartir();
       const texto = share.mock.calls[0][0].text;
 
-      expect(texto).toMatch(/^Reto diario \d{4}-\d{2}-\d{2}: \d+ puntos\. ¿Puedes superarme\? Reproduce: 2048reto:\d{4}-\d{2}-\d{2}:[LRUD]+$/);
+      if (juego.INCLUIR_CODIGO_REPLAY) {
+        expect(texto).toMatch(/^Reto diario \d{4}-\d{2}-\d{2}: \d+ puntos\. ¿Puedes superarme\? Reproduce: 2048reto:\d{4}-\d{2}-\d{2}:[LRUD]+$/);
+      } else {
+        // Desactivado de momento: solo fecha y puntuación, sin código.
+        expect(texto).toMatch(/^Reto diario \d{4}-\d{2}-\d{2}: \d+ puntos\. ¿Puedes superarme\?$/);
+      }
     } finally {
       delete navigator.share;
     }

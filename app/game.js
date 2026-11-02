@@ -1073,6 +1073,11 @@ async function crearCaptura(snapshot) {
 // descarga sorpresa). Cualquier otro error cae al paso siguiente y, si se
 // agota, al toast de último recurso: nunca un diálogo ni un rechazo sin
 // capturar. Cada paso lleva su feature-detect (en jsdom todos ausentes).
+// El código de replay en el mensaje compartido está DESACTIVADO de momento
+// (el botón "Ver jugada" está oculto, así que nadie podría usarlo). Ponlo a
+// true junto con quitar `hidden` de #replay en index.html para reactivarlo.
+export const INCLUIR_CODIGO_REPLAY = false;
+
 export async function compartir() {
   const snapshot = obtenerSnapshot();
   // Texto según el modo (D5): el reto comparte su FECHA, que es el código
@@ -1081,7 +1086,7 @@ export async function compartir() {
   // una bomba, I1) el texto vuelve al de solo puntuación.
   const texto = modo === "reto"
     ? `Reto diario ${snapshot.dia}: ${snapshot.score} puntos. ¿Puedes superarme?`
-      + (movimientos !== "" ? ` Reproduce: 2048reto:${snapshot.dia}:${movimientos}` : "")
+      + (INCLUIR_CODIGO_REPLAY && movimientos !== "" ? ` Reproduce: 2048reto:${snapshot.dia}:${movimientos}` : "")
     : `He hecho ${snapshot.score} puntos en 2048. ¿Puedes superarme?`;
 
   // Sin captura (jsdom, canvas roto, etc.) la cadena sigue con los pasos de
