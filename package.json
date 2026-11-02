@@ -2,6 +2,8 @@
   "name": "2048-portfolio",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/fernandomguez/2048.git" },
   "type": "module",
   "description": "2048 en JavaScript vanilla, sin dependencias de producción ni build.",
   "scripts": {

@@ -8,7 +8,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="2048">
   <meta property="og:description" content="Desliza las fichas, fusiona números y llega a 2048. Con tema claro/oscuro, deshacer y bomba.">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
 
   <!-- PWA: manifest instalable + metadatos de sistema (rutas relativas) -->
   <link rel="manifest" href="manifest.json">
@@ -20,15 +20,16 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-  <!-- Redes sociales / og:image: PNG estático con RUTA RELATIVA. Al elegir
-       hosting hay que reescribir og:url y og:image en URL absoluta (D1). -->
-  <meta property="og:url" content="./">
-  <meta property="og:image" content="icons/og-image-1200x630.png">
+  <!-- Redes sociales / og:image: PNG estático con URL ABSOLUTA de GitHub Pages
+       (las redes no resuelven rutas relativas). Si cambia el hosting, hay que
+       reescribir og:url, og:image y twitter:image (D1). -->
+  <meta property="og:url" content="https://fernandomguez.github.io/2048/">
+  <meta property="og:image" content="https://fernandomguez.github.io/2048/icons/og-image-1200x630.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:alt" content="Tablero de 2048 con la ficha 2048, los puntos y el récord.">
-  <meta name="twitter:image" content="icons/og-image-1200x630.png">
+  <meta name="twitter:image" content="https://fernandomguez.github.io/2048/icons/og-image-1200x630.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">

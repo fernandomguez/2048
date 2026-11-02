@@ -6,6 +6,8 @@ frameworks, sin build y sin dependencias de producción.
 
 [![CI](https://github.com/fernandomguez/2048/actions/workflows/ci.yml/badge.svg)](https://github.com/fernandomguez/2048/actions/workflows/ci.yml)
 
+**▶ Jugar online: <https://fernandomguez.github.io/2048/>**
+
 ## Características
 
 **Juego**
@@ -108,3 +110,7 @@ Para más detalle sobre decisiones de diseño y convenciones, consulta
 El juego no usa analítica ni envía datos a ningún servidor. Todo se guarda en
 tu navegador (`localStorage`). La única petición externa es la fuente
 *Space Grotesk* de Google Fonts.
+
+## Licencia
+
+[MIT](LICENSE) © 2026 Fernando Minguez

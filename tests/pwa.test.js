@@ -83,16 +83,16 @@ describe("index.html: manifest, iconos y metadatos en el head", () => {
     expect(html).toContain('name="apple-mobile-web-app-capable"');
   });
 
-  it("declara theme-color y los og con ruta relativa (D1)", () => {
+  it("declara theme-color y los og con URL absoluta de GitHub Pages (D1)", () => {
     expect(html).toContain('<meta name="theme-color" content="#14171c">');
     expect(html).toContain('property="og:url"');
-    expect(html).toContain('<meta property="og:image" content="icons/og-image-1200x630.png">');
+    expect(html).toContain('<meta property="og:image" content="https://fernandomguez.github.io/2048/icons/og-image-1200x630.png">');
     expect(html).toContain('<meta property="og:image:width" content="1200">');
     expect(html).toContain('<meta property="og:image:height" content="630">');
     expect(html).toContain('<meta property="og:image:type" content="image/png">');
     expect(html).toContain('property="og:image:alt"');
-    // Mientras no haya hosting elegido, og:url/og:image siguen RELATIVOS:
-    // la URL absoluta queda pendiente (nota en DOCUMENTACION.md §8.1).
+    // Hosting elegido: GitHub Pages. og:url/og:image son ABSOLUTOS porque las
+    // redes sociales no resuelven rutas relativas (nota en DOCUMENTACION.md §8.1).
   });
 });
 
