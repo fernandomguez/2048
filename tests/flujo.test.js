@@ -236,6 +236,8 @@ describe("nueva partida", () => {
     juego.mostrarGameOver();          // overlay visible
 
     document.getElementById("new-game").click();
+    // Hay progreso: "Nueva partida" pide confirmación (2º botón del overlay).
+    document.querySelectorAll("#overlay-actions button")[1].click();
 
     expect(overlayVisible()).toBe(false);
     expect(textosCeldas()).toEqual(INICIAL);

@@ -117,6 +117,8 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
   preservación del intento con cero escrituras (R2), teclado/deshacer/bomba
   bloqueados durante la reproducción, récord intacto (Task 6), replay que
   muere sin overlay (R6) y panel `#replay` sin tercer `role="dialog"`.
+- `tests/confirmar.test.js` — confirmación al salir de una partida con
+  progreso (Nueva partida / Reto diario) y barra inferior con texto.
 - `tests/setup.js` crea el DOM de arranque y **mockea `Math.random` a 0**: en tests
   de UI el tablero inicial es siempre `[[2,2,0,0], ...]` y `mover("left")` produce
   `[[4,2,0,0], ...]` con 4 puntos (2 celdas: la fusión resta una y el spawn añade otra).
@@ -125,7 +127,7 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
   (igual que `index.html`); `reto.test.js` adaptó su regex de compartir (R8,
   autorizado) para aceptar el sufijo ` Reproduce: 2048reto:…`.
 
-Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
+Total: **239 tests en 15 ficheros** (`npm test` debe dar todo en verde).
 
 ## Convenciones del repo
 
@@ -157,8 +159,18 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   No reabrir esto sin acuerdo explícito.
 - **La bomba NO entra en el historial de deshacer** (recurso consumible). Decisión
   de producto documentada en `app/game.js`; no cambiarla sin acordarlo.
-- **Reto diario (sub-bloque 2a, D5)**: `#daily` va en `.actions` ANTES de
-  `#share` (el de compartir es siempre el último botón de la barra). En modo
+- **Barra inferior y confirmación de salida**: `#install`, `#daily`, `#replay`
+  y `#share` viven en `.actions.actions-bottom`, DEBAJO del tablero, con icono
+  + texto (`.btn-text`); `#share` sigue siendo el último. `#replay-panel` va
+  entre el tablero y esa barra. "Nueva partida" y "Reto diario" pasan por
+  `confirmarSalida()` (`game.js`): si `partidaEnCurso()` (puntos, jugadas o
+  bomba usada, y tablero NO bloqueado; durante un replay se mide el
+  `snapshotReplay`) preguntan reutilizando `#overlay` — **jamás un tercer
+  `role="dialog"`** — con "Seguir jugando" como botón enfocado. Las funciones
+  exportadas (`nuevaPartida`, etc.) NO preguntan; solo los listeners de los
+  botones. Tests: `tests/confirmar.test.js`.
+- **Reto diario (sub-bloque 2a, D5)**: `#daily` va en la barra inferior ANTES
+  de `#share` (el de compartir es siempre el último botón de la barra). En modo
   reto el spawn usa `rndReto()` (mulberry32 con `rngEstado` persistido); el
   `Math.random()` de la página solo queda en el modo normal — **la semilla NO
   vive en `historial`** (D7). La fecha es local (`hoy()` → `YYYY-MM-DD`), los

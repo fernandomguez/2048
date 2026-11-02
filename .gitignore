@@ -2,3 +2,4 @@ node_modules/
 
 # Configuración local del agente (no es contenido del proyecto)
 .opencode/
+.playwright-mcp/

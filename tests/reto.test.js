@@ -168,6 +168,7 @@ describe("reto diario (UI, Task 11)", () => {
       const intentoA = juego.obtenerSnapshot();
 
       document.getElementById("daily").click(); // 2º intento del MISMO día
+      document.querySelectorAll("#overlay-actions button")[1].click(); // confirma la salida
       expect(document.getElementById("status").textContent).toBe("Reto diario 2026-10-10");
       juego.mover("left");
       expect(textosCeldas()).toEqual(trasPrimerMovimiento); // misma secuencia de spawns
@@ -193,6 +194,7 @@ describe("reto diario (UI, Task 11)", () => {
 
       vi.setSystemTime(new Date(2026, 9, 11, 9, 0, 0));
       document.getElementById("daily").click();
+      document.querySelectorAll("#overlay-actions button")[1].click(); // confirma la salida
       expect(document.getElementById("status").textContent).toBe("Reto diario 2026-10-11");
       juego.mover("left");
 

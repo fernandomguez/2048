@@ -84,67 +84,8 @@
               title="Activar o desactivar el sonido y la vibración">
         <span aria-hidden="true">🔊</span> Sonido
       </button>
-
-      <!-- Instalar la PWA: OCULTO por defecto; solo lo revela Chromium
-           en beforeinstallprompt (iOS/Firefox no lo disparan nunca, por
-           eso la instrucción vive en #welcome y no hay botón muerto). -->
-      <button class="btn ghost icon-btn tap-44" id="install" hidden
-              aria-label="Instalar la aplicación" title="Instalar 2048 en tu equipo">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 3v11"/>
-          <path d="M7.5 9.5 12 14l4.5-4.5"/>
-          <path d="M5 20h14"/>
-        </svg>
-      </button>
-
-      <!-- Reto diario (D5c): partida determinista por fecha local; el mismo
-           tablero para todos los jugadores de ese día. Va ANTES de #share,
-           que sigue siendo el ÚLTIMO de .actions (orden de tabulación). -->
-      <button class="btn ghost icon-btn tap-44" id="daily" aria-pressed="false"
-              aria-label="Reto diario" title="Reto diario: el mismo tablero cada día">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="5" width="18" height="16" rx="2"/>
-          <path d="M8 3v4M16 3v4M3 10h18"/>
-        </svg>
-      </button>
-
-      <!-- Ver jugada (2d): reproduce una jugada compartida del reto sobre
-           la semilla de su fecha. Va ANTES de #share (sigue siendo el
-           ÚLTIMO de .actions) y su panel es NO modal. -->
-      <button class="btn ghost icon-btn tap-44" id="replay"
-              aria-label="Ver jugada" title="Ver una jugada compartida"
-              aria-expanded="false" aria-controls="replay-panel">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
-      </button>
-
-      <!-- Compartir: ÚLTIMO de .actions para conservar el orden visual =
-           orden de tabulación (mismo patrón que #undo/#bomb). -->
-      <button class="btn ghost icon-btn tap-44" id="share"
-              aria-label="Compartir tablero" title="Compartir una captura de tu tablero">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="18" cy="5" r="3"/>
-          <circle cx="6" cy="12" r="3"/>
-          <circle cx="18" cy="19" r="3"/>
-          <path d="M8.6 13.5l6.8 4"/>
-          <path d="M15.4 6.5l-6.8 4"/>
-        </svg>
-      </button>
     </div>
 
-    <!-- Panel "Ver jugada" (2d): NO modal — el invariante de la página es
-         exactamente dos role="dialog" (bienvenida y fin). Oculto por
-         defecto; lo abre #replay y vive fuera de .actions. -->
-    <div id="replay-panel" hidden>
-      <label for="replay-input">Pega el mensaje o el código de una jugada compartida</label>
-      <textarea id="replay-input" rows="2" autocomplete="off" spellcheck="false"
-                placeholder="2048reto:2026-10-11:LLURDD…"></textarea>
-      <div class="replay-actions">
-        <button class="btn tap-44" id="replay-start">Reproducir</button>
-        <button class="btn ghost tap-44" id="replay-cancel">Cancelar</button>
-        <button class="btn tap-44" id="replay-stop" hidden>Parar</button>
-      </div>
     </div>
 
     <div class="board-wrap">
@@ -190,6 +131,77 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Panel "Ver jugada" (2d): NO modal — el invariante de la página es
+         exactamente dos role="dialog" (bienvenida y fin). Oculto por
+         defecto; lo abre #replay y vive justo encima de la barra inferior. -->
+    <div id="replay-panel" hidden>
+      <label for="replay-input">Pega el mensaje o el código de una jugada compartida</label>
+      <textarea id="replay-input" rows="2" autocomplete="off" spellcheck="false"
+                placeholder="2048reto:2026-10-11:LLURDD…"></textarea>
+      <div class="replay-actions">
+        <button class="btn tap-44" id="replay-start">Reproducir</button>
+        <button class="btn ghost tap-44" id="replay-cancel">Cancelar</button>
+        <button class="btn tap-44" id="replay-stop" hidden>Parar</button>
+      </div>
+    </div>
+
+    <!-- Barra inferior: acciones secundarias con icono + texto. #share es el
+         ÚLTIMO botón (orden visual = orden de tabulación). -->
+    <div class="actions actions-bottom">
+      <!-- Instalar la PWA: OCULTO por defecto; solo lo revela Chromium
+           en beforeinstallprompt (iOS/Firefox no lo disparan nunca, por
+           eso la instrucción vive en #welcome y no hay botón muerto). -->
+      <button class="btn ghost icon-btn tap-44" id="install" hidden
+              aria-label="Instalar la aplicación" title="Instalar 2048 en tu equipo">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v11"/>
+          <path d="M7.5 9.5 12 14l4.5-4.5"/>
+          <path d="M5 20h14"/>
+        </svg>
+        <span class="btn-text">Instalar</span>
+      </button>
+
+      <!-- Reto diario (D5c): partida determinista por fecha local; el mismo
+           tablero para todos los jugadores de ese día. Va ANTES de #share,
+           que sigue siendo el ÚLTIMO de la barra (orden de tabulación). -->
+      <button class="btn ghost icon-btn tap-44" id="daily" aria-pressed="false"
+              aria-label="Reto diario" title="Reto diario: el mismo tablero cada día">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <path d="M8 3v4M16 3v4M3 10h18"/>
+        </svg>
+        <span class="btn-text">Reto diario</span>
+      </button>
+
+      <!-- Ver jugada (2d): reproduce una jugada compartida del reto sobre
+           la semilla de su fecha. Va ANTES de #share (sigue siendo el
+           ÚLTIMO de la barra) y su panel es NO modal.
+           OCULTO de momento (atributo hidden): para reactivarlo, quita
+           `hidden`. La lógica y el panel siguen en game.js y los tests. -->
+      <button class="btn ghost icon-btn tap-44" id="replay" hidden
+              aria-label="Ver jugada" title="Ver una jugada compartida"
+              aria-expanded="false" aria-controls="replay-panel">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <span class="btn-text">Ver jugada</span>
+      </button>
+
+      <!-- Compartir: ÚLTIMO de la barra para conservar el orden visual =
+           orden de tabulación (mismo patrón que #undo/#bomb). -->
+      <button class="btn ghost icon-btn tap-44" id="share"
+              aria-label="Compartir tablero" title="Compartir una captura de tu tablero">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="18" cy="5" r="3"/>
+          <circle cx="6" cy="12" r="3"/>
+          <circle cx="18" cy="19" r="3"/>
+          <path d="M8.6 13.5l6.8 4"/>
+          <path d="M15.4 6.5l-6.8 4"/>
+        </svg>
+        <span class="btn-text">Compartir</span>
+      </button>
     </div>
 
     <!-- Toast de feedback (compartir/instalar): role="status" con

@@ -562,6 +562,40 @@ export function mostrarGameOver() {
   );
 }
 
+// --- CONFIRMAR SALIDA DE LA PARTIDA ---
+// Los botones que sustituyen el tablero (Nueva partida, Reto diario) piden
+// confirmación si hay una partida con progreso. Reutiliza el overlay de fin
+// (#overlay): NUNCA un tercer role="dialog". Mientras está abierto,
+// hayModalAbierto() bloquea teclado, swipe y power-ups como en cualquier modal.
+// Durante un replay el intento del jugador vive en `snapshotReplay`, así que el
+// progreso se mide ahí. Una partida bloqueada o sin jugadas no pregunta.
+function partidaEnCurso() {
+  const intento = reproduciendo && snapshotReplay ? snapshotReplay : null;
+  const tablero = intento ? intento.board : board;
+  const puntos = intento ? intento.score : score;
+  const jugadas = intento ? intento.historial.length : historial.length;
+  const bombas = intento ? intento.bombasRestantes : bombasRestantes;
+  if (esGameOver(tablero)) return false;
+  return puntos > 0 || jugadas > 0 || bombas < BOMBAS_INICIALES;
+}
+
+function confirmarSalida(etiquetaAccion, accion) {
+  if (!partidaEnCurso()) {
+    accion();
+    return;
+  }
+  const puntos = reproduciendo && snapshotReplay ? snapshotReplay.score : score;
+  mostrarOverlay(
+    "¿Salir de la partida?",
+    "Perderás la partida en curso (" + puntos + " puntos).",
+    [
+      // El primer botón recibe el foco: el seguro es "Seguir jugando".
+      { label: "Seguir jugando", ghost: true, onClick: ocultarOverlay },
+      { label: etiquetaAccion, onClick: () => accion() },
+    ]
+  );
+}
+
 // --- NUEVA PARTIDA ---
 // Única fuente de verdad para iniciar una partida: la usan el botón, el
 // overlay, el reto diario y la inicialización al cargar la página.
@@ -937,7 +971,9 @@ document.addEventListener("touchmove", (evento) => {
 }, { passive: false });
 
 // --- BOTONES ---
-document.getElementById("new-game").addEventListener("click", nuevaPartida);
+document.getElementById("new-game").addEventListener("click", () => {
+  confirmarSalida("Nueva partida", nuevaPartida);
+});
 undoBtn.addEventListener("click", deshacer);
 bombBtn.addEventListener("click", toggleBomba);
 
@@ -945,8 +981,10 @@ bombBtn.addEventListener("click", toggleBomba);
 // de HOY (fecha local) e informa del día por toast. #share sigue siendo el
 // último hijo de .actions (contrato de orden de tabulación).
 dailyBtn.addEventListener("click", () => {
-  empezarPartida("reto");
-  mostrarToast("Reto diario " + diaReto);
+  confirmarSalida("Empezar reto", () => {
+    empezarPartida("reto");
+    mostrarToast("Reto diario " + diaReto);
+  });
 });
 
 // ============================================================

@@ -152,6 +152,37 @@ h1 {
 }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
 
+/* Barra inferior (instalar, reto diario, ver jugada, compartir): debajo del
+   tablero, con icono + texto. Cuadrícula: los botones visibles se reparten una
+   fila (Instalar solo aparece en navegadores instalables y Ver jugada está
+   oculto de momento); con los 4 visibles pasa a 2x2 en móvil. */
+.actions-bottom {
+  display: grid;
+  grid-auto-flow: column;      /* los botones visibles se reparten UNA fila */
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+/* Con los 4 visibles no caben en una fila en móvil: 2x2. */
+.actions-bottom:has(#install:not([hidden])):has(#replay:not([hidden])) {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 520px) {
+  .actions-bottom:has(#install:not([hidden])):has(#replay:not([hidden])) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.actions-bottom .icon-btn {
+  justify-content: center;
+  padding: 9px 8px;
+  gap: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.actions-bottom .icon-btn svg { flex: none; }
+
 /* Botones con icono SVG + contador */
 .icon-btn {
   display: inline-flex;
@@ -173,12 +204,12 @@ h1 {
    (#install y #share): solo ellos, sin agravar la altura de #undo/#bomb. */
 .tap-44 { min-height: 44px; min-width: 44px; }
 
-/* Panel "Ver jugada" (sub-bloque 2d): NO modal, vive entre .actions y el
-   tablero y se abre con #replay (aria-controls). [hidden] gana a display. */
+/* Panel "Ver jugada" (sub-bloque 2d): NO modal, vive entre el tablero y la
+   barra inferior y se abre con #replay (aria-controls). [hidden] gana a display. */
 #replay-panel {
   display: grid;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-top: 14px;
   padding: 12px;
   background: var(--board);
   border: 1px solid var(--line);
@@ -445,6 +476,7 @@ h1 {
 
   .topbar { margin-bottom: 0; flex-direction: column; gap: 10px; }
   .actions { margin-bottom: 0; }
+  .actions-bottom { margin-top: 0; }
 
   /* El tablero se dimensiona por la ALTURA (para caber a lo alto) sin pasarse
      de ancho (para dejar sitio a los controles al lado). */

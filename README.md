@@ -19,6 +19,8 @@ frameworks, sin build y sin dependencias de producción.
 - **Partida guardada automáticamente**: recarga o vuelve atrás y sigues donde
   estabas (tablero, puntos, deshacer y bombas).
 - Puntuación y **récord** persistentes en `localStorage`.
+- **Confirmación** antes de abandonar una partida en curso (Nueva partida o
+  Reto diario), para no perderla por un toque accidental.
 - El game over es definitivo: no hay rescate una vez bloqueado el tablero.
 
 **Reto diario y replay**
@@ -85,7 +87,7 @@ La lógica del juego está separada de la interfaz y de los efectos:
 ├── app/     # interfaz: entradas, render, overlays y efectos
 ├── css/     # estilos y temas
 ├── icons/   # iconos PWA y og:image
-├── tests/   # Vitest (14 suites)
+├── tests/   # Vitest (15 suites)
 ├── tools/   # servidor local y generador de iconos (solo desarrollo)
 └── docs/    # documentación de diseño y estado del proyecto
 ```
@@ -100,7 +102,7 @@ La lógica del juego está separada de la interfaz y de los efectos:
 | `css/style.css` | Temas claro/oscuro y layout |
 | `sw.js`, `manifest.json` | PWA: service worker y manifiesto |
 | `tools/` | Servidor local y generador de iconos (solo desarrollo) |
-| `tests/` | 14 suites, 230 tests: reglas, flujos de UI, persistencia, animación, PWA, compartir, reto y replay |
+| `tests/` | 15 suites, 239 tests: reglas, flujos de UI, persistencia, animación, PWA, compartir, reto y replay |
 
 Para más detalle sobre decisiones de diseño y convenciones, consulta
 [`AGENTS.md`](AGENTS.md) y [`docs/DOCUMENTACION.md`](docs/DOCUMENTACION.md).
