@@ -20,7 +20,7 @@
 //  existentes.
 // ============================================================
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import * as juego from "../game.js";
+import * as juego from "../app/game.js";
 
 // --- HELPERS ---
 function tablero() {

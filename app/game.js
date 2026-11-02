@@ -24,7 +24,7 @@ import {
   reproducirSecuencia,
   DIRECCIONES_REPLAY,
   CARACTERES_REPLAY,
-} from "./game-core.js";
+} from "../js/game-core.js";
 import {
   configurarFx,
   animarMovimiento,
@@ -37,7 +37,7 @@ import {
 } from "./game-fx.js";
 // Composición de la captura compartible (datos → canvas). Módulo SIN DOM en
 // top-level, así que importarlo aquí no añade estado ni efectos secundarios.
-import { dibujarCaptura, MEDIDAS_CAPTURA } from "./game-share.js";
+import { dibujarCaptura, MEDIDAS_CAPTURA } from "../js/game-share.js";
 
 // --- REFERENCIAS AL DOM ---
 const boardEl   = document.getElementById("board");

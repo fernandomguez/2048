@@ -1,4 +1,4 @@
-// scripts/servidor.mjs — servidor estático mínimo para jugar en local.
+// tools/servidor.mjs — servidor estático mínimo para jugar en local.
 // Solo para desarrollo: en producción no hay servidor (GitHub Pages u otro
 // estático sirve los archivos tal cual). Sin dependencias.
 import { createServer } from "node:http";

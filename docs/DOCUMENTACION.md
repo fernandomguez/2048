@@ -14,8 +14,8 @@ Repositorio 2048 estático (HTML + CSS + JS vanilla, sin frameworks, sin build):
 | Archivo | Rol original |
 | --- | --- |
 | `index.html` | Marcado, Google Fonts, power-ups |
-| `game.js` | Script clásico único (lógica + UI + storage mezclados, ~445 líneas) |
-| `style.css` | Temas claro/oscuro y layout `dvh` |
+| `app/game.js` | Script clásico único (lógica + UI + storage mezclados, ~445 líneas) |
+| `css/style.css` | Temas claro/oscuro y layout `dvh` |
 
 Características previas: movimientos por flechas y swipe, deshacer (3 usos),
 bomba (1 uso), récord y tema en `localStorage["stats2048"]`, pantalla de
@@ -47,7 +47,7 @@ archivos). Conclusiones clave:
 
 ### Fase 1 — Bugs P1
 
-**P1-1 · Entrada bloqueable de forma coherente** (`game.js`)
+**P1-1 · Entrada bloqueable de forma coherente** (`app/game.js`)
 
 - Nuevo predicado central `hayModalAbierto()` = `!welcomeEl.hidden || !overlayEl.hidden`.
 - Es el **único** punto que decide si la entrada está bloqueada. Lo consultan:
@@ -56,7 +56,7 @@ archivos). Conclusiones clave:
     overlay visible las celdas están cubiertas: antes era un callejón sin salida).
 - Ningún listener conoce overlays individuales.
 
-**P1-2 · Deshacer con overlay de fin abierto** (`game.js`)
+**P1-2 · Deshacer con overlay de fin abierto** (`app/game.js`)
 
 - **Decisión de diseño (opción 1 de la auditoría):** `deshacer()` **funciona**
   durante el fin de partida; restaurar la partida **cierra el overlay**
@@ -67,8 +67,8 @@ archivos). Conclusiones clave:
 
 ### Fase 2 — Separación núcleo / UI
 
-- `index.html` → `<script type="module" src="game.js">`. **Sin bundler.**
-- **Nuevo `game-core.js`** (puro, datos → datos; verificado por grep: **cero**
+- `index.html` → `<script type="module" src="app/game.js">`. **Sin bundler.**
+- **Nuevo `js/game-core.js`** (puro, datos → datos; verificado por grep: **cero**
   referencias a `document`, `localStorage` o eventos):
   - Constantes: `TAMANO`, `VALOR_VICTORIA`, `PROBABILIDAD_DOS`,
     `USOS_DESHACER_INICIALES`, `BOMBAS_INICIALES`.
@@ -87,7 +87,7 @@ archivos). Conclusiones clave:
 - **Init sin duplicación**: el arranque del script llama a `nuevaPartida()`,
   única fuente de verdad (tablero, score, historial, contadores, power-ups,
   overlays, render).
-- `game.js` exporta la capa de comandos que usan los tests: `mover`, `deshacer`,
+- `app/game.js` exporta la capa de comandos que usan los tests: `mover`, `deshacer`,
   `toggleBomba`, `nuevaPartida`, `mostrarVictoria`, `mostrarGameOver`.
 
 ### Fase 3 — Testing, lint, CI, a11y, docs
@@ -98,7 +98,7 @@ archivos). Conclusiones clave:
   | --- | --- | --- |
   | `tests/game-core.test.js` | 39 | Fusión sin cadena, comprimir, 4 direcciones, game over, victoria, spawn, deshacer puro |
   | `tests/flujo.test.js` | 16 | **Regresión P1** (bienvenida bloquea teclado/swipe/bomba; game over y victoria → deshacer cierra overlay), bomba, contadores, nueva partida |
-  | `tests/markup.test.js` | 5 | Arranca `game.js` contra el **`index.html` real**; todos los ids consultados existen; meta/aria presentes |
+  | `tests/markup.test.js` | 5 | Arranca `app/game.js` contra el **`index.html` real**; todos los ids consultados existen; meta/aria presentes |
   | `tests/persistencia.test.js` | 4 | Récord y tema en `localStorage` |
   | `tests/setup.js` | — | Fixture DOM + `matchMedia` stub + **`Math.random` mockeado a 0** (tablero inicial determinista `[[2,2,0,0],…]`) |
 - **ESLint** (flat config, `@eslint/js` recommended + globals browser/node).
@@ -124,12 +124,12 @@ headless:
 | Cómo se abre | Resultado |
 | --- | --- |
 | `http://localhost:8000` | ✅ 16 celdas, 2 fichas, arranca |
-| `file:///…/index.html` (doble clic) | ❌ `game.js` bloqueado por CORS (módulos ES), 0 celdas |
+| `file:///…/index.html` (doble clic) | ❌ `app/game.js` bloqueado por CORS (módulos ES), 0 celdas |
 
 Los módulos ES exigen HTTP: **doble-clic dejó de servir** (coste aceptado de la
 Fase 2, inherente a usar ESM sin bundler). Soluciones implementadas:
 
-1. **`scripts/servidor.mjs`** — servidor estático propio, ~45 líneas, **cero
+1. **`tools/servidor.mjs`** — servidor estático propio, ~45 líneas, **cero
    dependencias**, con MIME correcto, anti-`path traversal` y mensaje amigable en
    `EADDRINUSE` (no traza de Node). Alias: **`npm start`** → puerto 8000
    (configurable con `PORT=8080 npm start`).
@@ -144,11 +144,11 @@ Fase 2, inherente a usar ESM sin bundler). Soluciones implementadas:
 | Decisión | Rationale |
 | --- | --- |
 | `deshacer()` cierra el overlay de fin | Recuperación de partida elegida como producto; el botón está fuera del overlay |
-| La bomba **no** entra en el historial de deshacer | Recurso consumible; documentado en `game.js` y `AGENTS.md` |
+| La bomba **no** entra en el historial de deshacer | Recurso consumible; documentado en `app/game.js` y `AGENTS.md` |
 | Sin bundler / sin frameworks | Principio del proyecto; ESM es nativo |
 | `file://` no soportado | Consecuencia de ESM; cubierto con `npm start` + aviso |
 | Tema claro duplicado en CSS | Evita FOUC antes de que JS fije `data-theme` |
-| `render()` **reconcilia** 16 slots (ya no reconstruye) | Identidad de nodos para animar con `transform`; **revoca** la fila previa "Render reconstruye las 16 celdas". La rampa `data-value`/`lenN` sigue en `.cell`: cero selectores migrados de `style.css` |
+| `render()` **reconcilia** 16 slots (ya no reconstruye) | Identidad de nodos para animar con `transform`; **revoca** la fila previa "Render reconstruye las 16 celdas". La rampa `data-value`/`lenN` sigue en `.cell`: cero selectores migrados de `css/style.css` |
 | Sin focus-trap en diálogos | Tab debe llegar al botón de deshacer (está fuera del overlay) |
 | Animación **sin lock de entrada** (decisión 3) | Estado + DOM síncronos en `mover()`; la capa FX (`#fx-layer`) es posterior e interrumpible (`limpiarFx()` al inicio de cada ciclo). Nunca se difiere estado por animación: conserva los tests de flujo y markup (riesgo 1) |
 | Partida en curso en clave `partida2048` (decisión 6) | Clave SEPARADA de `stats2048` para no romper `expect(stats()).toBeNull()`; esquema v1 con `historial` y `victoriaAvisada`, validado por `esPartidaValida()`; **restauración automática sin diálogo** (un tercer `[role="dialog"]` rompería `markup.test.js`); guardado en `pagehide`/`visibilitychange`, borrado en `nuevaPartida()` y al acabar |
@@ -177,10 +177,10 @@ seguimiento: `.gitignore`/`.opencode` y las actualizaciones de esta memoria):
 
 | Mensaje | Contenido |
 | --- | --- |
-| `Añade la lógica pura del juego en game-core.js` | `game-core.js` |
-| `Separa la lógica en game-core.js y usa módulos ES` | `game.js`, `index.html`, `style.css` |
-| `Añade tooling de desarrollo: npm, ESLint, Vitest y servidor local` | `package.json`, `package-lock.json`, ESLint, Vitest, `tests/setup.js`, `scripts/servidor.mjs`, `.gitignore` |
-| `Añade tests del núcleo puro en game-core.js` | `tests/game-core.test.js` |
+| `Añade la lógica pura del juego en js/game-core.js` | `js/game-core.js` |
+| `Separa la lógica en js/game-core.js y usa módulos ES` | `app/game.js`, `index.html`, `css/style.css` |
+| `Añade tooling de desarrollo: npm, ESLint, Vitest y servidor local` | `package.json`, `package-lock.json`, ESLint, Vitest, `tests/setup.js`, `tools/servidor.mjs`, `.gitignore` |
+| `Añade tests del núcleo puro en js/game-core.js` | `tests/game-core.test.js` |
 | `Añade tests de la capa de UI: flujos, markup y persistencia` | `tests/flujo.test.js`, `markup.test.js`, `persistencia.test.js` |
 | `Añade CI con lint y tests en GitHub Actions` | `.github/workflows/ci.yml` |
 | `Añade documentación: README, AGENTS y memoria de la auditoría` | `README.md`, `AGENTS.md`, `DOCUMENTACION.md` |
@@ -251,21 +251,21 @@ Estado:
 ## 9. Estructura actual del código
 
 ```text
-index.html ──<script type="module">──► game.js (UI: entradas, render,
+index.html ──<script type="module">──► app/game.js (UI: entradas, render,
                                           overlays, power-ups, storage,
                                           compartir e instalación)
                                             │ importa
                           ┌─────────────────┴─────────────────┐
                           ▼                                   ▼
-                 game-fx.js (efectos y feedback:      game-core.js (puro: datos → datos;
+                 app/game-fx.js (efectos y feedback:      js/game-core.js (puro: datos → datos;
                  slide/pop/fantasmas y flotantes +N   traza de animación y
                  en #fx-layer; sonido y háptica)      esPartidaValida)
                           │                                   ▲
                           └────────────── importa ────────────┘
 
-game-share.js  → captura para compartir: RAMPA, PALETAS, MEDIDAS_CAPTURA y
+js/game-share.js  → captura para compartir: RAMPA, PALETAS, MEDIDAS_CAPTURA y
                  dibujarCaptura (canvas 2D SIEMPRE desconectado); lo importa
-                 game.js, que exporta obtenerSnapshot(), compartir() y
+                 app/game.js, que exporta obtenerSnapshot(), compartir() y
                  DURACION_TOAST
 manifest.json  → PWA: start_url/scope + iconos (SVG en icons/, PNG 180 y
                  og 1200×630)
@@ -274,7 +274,7 @@ sw.js          → service worker 2048-v1: network-first para documento, JS y
                  skipWaiting ni recarga automática (clients.claim() sí)
 icons/         → 2048.svg · 2048-maskable.svg · apple-touch-icon-180.png
                  · og-image-1200x630.png  (los 2 PNG, commiteados)
-scripts/generar-iconos.mjs + scripts/lib/ctx-software.mjs
+tools/generar-iconos.mjs + tools/lib/ctx-software.mjs
                  → npm run iconos (SOLO desarrollo, sin dependencias)
 
 tests/ (Vitest: núcleo en nodo, UI en jsdom) — 230 tests en 14 ficheros
@@ -284,7 +284,7 @@ tests/ (Vitest: núcleo en nodo, UI en jsdom) — 230 tests en 14 ficheros
   Bloque 2a:  hitos · reto
   Bloque 2d:  replay
   setup.js (fixture DOM + matchMedia stub + Math.random = 0 + #daily + #replay-panel)
-scripts/servidor.mjs  → npm start (dev, sin dependencias)
+tools/servidor.mjs  → npm start (dev, sin dependencias)
 .github/workflows/ci.yml → lint + tests en push/PR
 ```
 
@@ -346,7 +346,7 @@ scripts/servidor.mjs  → npm start (dev, sin dependencias)
 
 - **Reto diario con semilla fija** — `semillaDeFecha(fecha)` (FNV-1a → uint32)
   y `siguienteRng(estado)` (mulberry32 con estado explícito) viven en
-  `game-core.js`; `hoy()` usa la fecha **local** `YYYY-MM-DD` (D5a), los
+  `js/game-core.js`; `hoy()` usa la fecha **local** `YYYY-MM-DD` (D5a), los
   intentos son **ilimitados** (mismo día ⇒ misma secuencia, D5b) y el botón
   `#daily` en `.actions` va **antes de `#share`** (D5c) con
   `aria-pressed`. El récord sigue siendo el compartido `stats2048.record`
@@ -385,11 +385,11 @@ pipeline completo fases 01-06):
   completo del compartir o el código suelto y devuelve `{fecha, movimientos}`;
   la forma inválida ⇒ `null` y toast "Código de jugada no válido". Cualquier
   fecha válida se puede reproducir (R5), no solo la de hoy.
-- **Dry-run puro en `game-core.js`** — `reproducirSecuencia(fecha, seq)`
+- **Dry-run puro en `js/game-core.js`** — `reproducirSecuencia(fecha, seq)`
   reconstruye la partida entera sin tocar la UI; un movimiento **sin cambio
   NO avanza el RNG** (referencia: `"RL"` ≡ `"L"` en `2026-11-01`). La misma
   fecha + la misma secuencia ⇒ siempre el tablero exacto.
-- **Grabación en `game.js`** — en modo reto cada movimiento con cambio
+- **Grabación en `app/game.js`** — en modo reto cada movimiento con cambio
   apendea su carácter (`CARACTERES_REPLAY`); el **deshacer hace pop** (I2,
   1:1 con `historial`) y **la bomba limpia la secuencia** (I1: muta el
   tablero sin RNG ⇒ el intento deja de ser reproducible y el compartir vuelve
@@ -426,8 +426,8 @@ pipeline completo fases 01-06):
 | Sub-bloque | Estado | Decisión clave ya tomada |
 | --- | --- | --- |
 | **2a** reto diario + power-ups por hitos | ✅ **IMPLEMENTADO (2026-10-11)** — fases 03-06 del pipeline | semilla local `YYYY-MM-DD`, intentos ilimitados, botón `#daily`, récord compartido; +1 deshacer al 128/512/1024 y +1 bomba al 256/2048 **sobre los iniciales**; `rngEstado` en `partida2048` y **backfill sin conceder** en guardados antiguos |
-| **2d** replay del reto ("Reproduce mi jugada") | ✅ **IMPLEMENTADO (2026-10-11)** — pipeline completo 01-06 | código `2048reto:<fecha>:<LRUD…>` (máx. 5000), dry-run puro en `game-core.js`, grabación con pop en deshacer (I2) y limpieza con bomba (I1), intento preservado sin escrituras (R2), sin overlays ni récord durante la reproducción (R6/Task 6), panel **no modal**, cualquier fecha reproducible (R5), sin anti-cheat (R7) |
-| **2b** tamaños de tablero | ⏸ aplazado | **Opción B: derivar el tamaño del propio tablero** (`matriz.length`) — exige aprobación explícita de la línea roja "algoritmo intacto" al abrir ese pipeline; `game-share.js:224` también divide entre 4 |
+| **2d** replay del reto ("Reproduce mi jugada") | ✅ **IMPLEMENTADO (2026-10-11)** — pipeline completo 01-06 | código `2048reto:<fecha>:<LRUD…>` (máx. 5000), dry-run puro en `js/game-core.js`, grabación con pop en deshacer (I2) y limpieza con bomba (I1), intento preservado sin escrituras (R2), sin overlays ni récord durante la reproducción (R6/Task 6), panel **no modal**, cualquier fecha reproducible (R5), sin anti-cheat (R7) |
+| **2b** tamaños de tablero | ⏸ aplazado | **Opción B: derivar el tamaño del propio tablero** (`matriz.length`) — exige aprobación explícita de la línea roja "algoritmo intacto" al abrir ese pipeline; `js/game-share.js:224` también divide entre 4 |
 | **2c** panel de estadísticas | ⏸ aplazado | **clave nueva `estadisticas2048`** + **panel no modal** (no romper el invariante de 2 `role="dialog"`) |
 
 Informes del pipeline del 2a archivados en
@@ -454,7 +454,7 @@ build, sin backend**.
     documento, JS y CSS** con fallback a caché y cache-first para iconos,
     manifest e imágenes; sin Google Fonts en caché (D4), **sin `skipWaiting()`
     ni recarga automática** (G7; `clients.claim()` sí toma el control de la
-    primera carga); registro con feature-detect en `game.js` (D8) y guard
+    primera carga); registro con feature-detect en `app/game.js` (D8) y guard
     `file://`. Cómo apagarlo en DevTools: Application → Service Workers →
     Unregister, o "Bypass for network".
   - Override de ESLint para `sw.js` (`self`, `caches`).
@@ -474,7 +474,7 @@ build, sin backend**.
   **ruta relativa**: la URL absoluta se completa al elegir hosting (D1,
   §8.1).
 - **Fuera de alcance confirmado** — leaderboard online (backend prohibido),
-  `game-core.js` intacto, cero claves nuevas de persistencia (compartir **no
+  `js/game-core.js` intacto, cero claves nuevas de persistencia (compartir **no
   escribe** en `localStorage`), cero dependencias, cero build, **sin banner ni
   chip de offline** (D2) y sin cachear fuentes (D4).
 
@@ -483,7 +483,7 @@ ruta relativa · D2 offline silencioso · D3 captura con el tema activo · D4 si
 Google Fonts en caché · D5 SW network-first + DevTools Unregister · D6 iconos
 192/512 como SVG `sizes: "any"` · D7 `#install` oculto hasta
 `beforeinstallprompt` + instrucción iOS estática · D8 registro del SW en
-`game.js` (no un `<script>` clásico) · D9 dibujo en `game-share.js` (Node lo
+`app/game.js` (no un `<script>` clásico) · D9 dibujo en `js/game-share.js` (Node lo
 reutiliza para los iconos) · D10 tests nuevos en ficheros nuevos · D11 sí se
 documenta (`AGENTS.md`/`DOCUMENTACION.md`) · D12 **sin push** en esta fase.
 

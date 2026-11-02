@@ -5,11 +5,11 @@
   "type": "module",
   "description": "2048 en JavaScript vanilla, sin dependencias de producción ni build.",
   "scripts": {
-    "start": "node scripts/servidor.mjs",
+    "start": "node tools/servidor.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "iconos": "node scripts/generar-iconos.mjs"
+    "iconos": "node tools/generar-iconos.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

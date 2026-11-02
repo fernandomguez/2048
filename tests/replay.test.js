@@ -10,7 +10,7 @@ import {
   parsearCodigoJugada,
   reproducirSecuencia,
   esPartidaValida,
-} from "../game-core.js";
+} from "../js/game-core.js";
 
 // ============================================================
 //  Task 1 — parsearCodigoJugada
@@ -153,7 +153,7 @@ describe("esPartidaValida con el campo `movimientos` (Task 3)", () => {
 // ============================================================
 localStorage.setItem("stats2048", JSON.stringify({ record: 0, tema: "dark" }));
 
-const juego = await import("../game.js");
+const juego = await import("../app/game.js");
 const { INTERVALO_REPLAY } = juego;
 
 const CARACTER = { left: "L", right: "R", up: "U", down: "D" };

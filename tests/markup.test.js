@@ -19,7 +19,7 @@ const cuerpo = html
 // El DOM real debe estar montado ANTES de importar game.js.
 document.body.innerHTML = cuerpo;
 
-const juego = await import("../game.js");
+const juego = await import("../app/game.js");
 
 function textosCeldas() {
   return [...document.getElementById("board").children]
@@ -57,7 +57,7 @@ describe("index.html real + game.js", () => {
   });
 
   it("todos los ids que consulta game.js existen en index.html", () => {
-    const fuente = leer("../game.js");
+    const fuente = leer("../app/game.js");
     const idsUsados = [...fuente.matchAll(/getElementById\("([^"]+)"\)/g)].map(m => m[1]);
     const idsExistentes = [...html.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
 
@@ -68,7 +68,7 @@ describe("index.html real + game.js", () => {
   });
 
   it("metadatos y accesibilidad presentes en el markup real", () => {
-    expect(html).toContain('<script type="module" src="game.js">');
+    expect(html).toContain('<script type="module" src="app/game.js">');
     expect(html).toContain('name="description"');
     expect(html).toContain('property="og:title"');
     expect(html).toContain('property="og:description"');

@@ -4,8 +4,8 @@
 // los mismos valores, render() sigue representando el estado en el DOM de
 // forma equivalente a la reconstrucción anterior.
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import * as juego from "../game.js";
-import { pintarFlotantes } from "../game-fx.js";
+import * as juego from "../app/game.js";
+import { pintarFlotantes } from "../app/game-fx.js";
 
 // --- Helpers ---
 function textosCeldas() {

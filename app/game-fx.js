@@ -9,7 +9,7 @@
 //  Interrumpible por diseño: limpiarFx() al inicio de cada ciclo de juego.
 // ============================================================
 
-import { TAMANO } from "./game-core.js";
+import { TAMANO } from "../js/game-core.js";
 
 // Duraciones en ms: deben casar con las de style.css.
 const DURACION_SLIDE_MS = 120;          // transición transform del slide

@@ -4,7 +4,7 @@
 // restaurarPartida() no añaden campos a stats2048) y las claves se borran al
 // empezar una partida o al mostrar el fin de partida.
 import { describe, it, expect, beforeEach } from "vitest";
-import * as juego from "../game.js";
+import * as juego from "../app/game.js";
 
 function clave() {
   return localStorage.getItem("partida2048");

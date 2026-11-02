@@ -157,8 +157,8 @@ describe("sw.js", () => {
     }
 
     const obligatorias = [
-      "./", "./index.html", "./style.css",
-      "./game.js", "./game-core.js", "./game-fx.js", "./game-share.js",
+      "./", "./index.html", "./css/style.css",
+      "./app/game.js", "./js/game-core.js", "./app/game-fx.js", "./js/game-share.js",
       "./manifest.json",
       "./icons/2048.svg", "./icons/2048-maskable.svg",
       "./icons/apple-touch-icon-180.png", "./icons/og-image-1200x630.png",
@@ -200,7 +200,7 @@ describe("eslint.config.js", () => {
 // ============================================================
 
 describe("game.js: registro del service worker", () => {
-  const fuente = leer("game.js");
+  const fuente = leer("app/game.js");
 
   it('registra "./sw.js" con feature-detect y guard de file://', () => {
     expect(fuente).toContain('"serviceWorker" in navigator');
@@ -214,7 +214,7 @@ describe("game.js: registro del service worker", () => {
 // ============================================================
 
 describe("style.css: guards de UI", () => {
-  const css = leer("style.css");
+  const css = leer("css/style.css");
 
   it("[hidden] gana a .icon-btn, .tap-44 mide 44px y .toast[hidden] existe", () => {
     expect(css).toContain(".icon-btn[hidden]");
@@ -239,7 +239,7 @@ describe("tooling: dependencias y CI", () => {
       "jsdom",
       "vitest",
     ]);
-    expect(pkg.scripts.iconos).toBe("node scripts/generar-iconos.mjs");
+    expect(pkg.scripts.iconos).toBe("node tools/generar-iconos.mjs");
     // npm test no ejecuta el generador de iconos (queda fuera de la CI).
     expect(pkg.scripts.test).toBe("vitest run");
   });

@@ -16,7 +16,7 @@ import {
   hayVictoria,
   aplicarDeshacer,
   esPartidaValida,
-} from "../game-core.js";
+} from "../js/game-core.js";
 
 // Tablero de referencia asimétrico para probar las 4 direcciones.
 const INICIAL = [

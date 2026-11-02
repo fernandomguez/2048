@@ -7,7 +7,7 @@ import {
   calcularHitos,
   hitosAlcanzados,
   esPartidaValida,
-} from "../game-core.js";
+} from "../js/game-core.js";
 
 const CERO = [0, 0, 0, 0];
 
@@ -172,7 +172,7 @@ describe("esPartidaValida con los campos opcionales del sub-bloque 2a (Task 3)",
 //  archivo (patrón arranque.test.js: importarlo dos veces duplicaría los
 //  listeners de teclado/touch).
 // ============================================================
-const juego = await import("../game.js");
+const juego = await import("../app/game.js");
 
 function partidaGuardada() {
   return JSON.parse(localStorage.getItem("partida2048"));

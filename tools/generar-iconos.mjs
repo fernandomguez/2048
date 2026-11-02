@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // ============================================================
-//  2048 — scripts/generar-iconos.mjs
+//  2048 — tools/generar-iconos.mjs
 //  Script de desarrollo (npm run iconos): genera los dos PNG del
 //  repo SIN dependencias ni build — Node puro (node:fs, node:path,
-//  node:zlib con CRC32 propio en scripts/lib/ctx-software.mjs).
+//  node:zlib con CRC32 propio en tools/lib/ctx-software.mjs).
 //
 //  Salidas (se COMMITEAN; no forma parte de `npm test` ni de CI):
 //   1. icons/apple-touch-icon-180.png  → 180×180  (iOS no acepta SVG)
@@ -21,7 +21,7 @@ import { mkdirSync, writeFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { dibujarCaptura, MEDIDAS_CAPTURA } from "../game-share.js";
+import { dibujarCaptura, MEDIDAS_CAPTURA } from "../js/game-share.js";
 import { crearCtxSoftware, aPNG } from "./lib/ctx-software.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");

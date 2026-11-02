@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import * as juego from "../game.js";
+import * as juego from "../app/game.js";
 
 function stats() {
   const crudo = localStorage.getItem("stats2048");

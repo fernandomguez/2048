@@ -15,7 +15,7 @@ export default [
   },
   {
     // Tests, scripts de desarrollo y configs: browser (jsdom) + node.
-    files: ["tests/**/*.js", "scripts/**/*.mjs", "*.config.js", "eslint.config.js"],
+    files: ["tests/**/*.js", "tools/**/*.mjs", "*.config.js", "eslint.config.js"],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
     },

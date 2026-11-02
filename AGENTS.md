@@ -1,37 +1,42 @@
 # AGENTS.md
 
 > El historial completo de la auditoría y refactorización (decisiones, pendientes
-> y estado de git) está en **`DOCUMENTACION.md`**. Léelo antes de cambios grandes.
+> y estado de git) está en **`docs/DOCUMENTACION.md`**. Léelo antes de cambios grandes.
 
 ## Qué es
+
+Layout de carpetas (como Trazen): `js/` = módulos puros sin DOM, `app/` = UI y
+efectos, `css/`, `tools/` = scripts de desarrollo, `docs/` = documentación.
+En la raíz solo `index.html`, `manifest.json` y `sw.js` (el SW necesita el
+scope raíz y su URL no debe cambiar).
 
 2048 estático (HTML + CSS + JS vanilla, **sin frameworks ni build de producción**).
 Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funciona**.
 
-- `index.html` — marcado, meta tags y accesibilidad; carga `game.js` como `<script type="module">`.
-- `game-core.js` — lógica pura del juego: recibe datos y devuelve datos. **Sin DOM,
+- `index.html` — marcado, meta tags y accesibilidad; carga `app/game.js` como `<script type="module">`.
+- `js/game-core.js` — lógica pura del juego: recibe datos y devuelve datos. **Sin DOM,
   sin localStorage, sin eventos.** Toda regla nueva va aquí (incluidos
   `semillaDeFecha`/`siguienteRng` del reto diario,
   `calcularHitos`/`hitosAlcanzados` de los power-ups por hitos y
   `parsearCodigoJugada`/`reproducirSecuencia` del replay).
-- `game.js` — capa UI: entradas, render, overlays, power-ups, persistencia,
+- `app/game.js` — capa UI: entradas, render, overlays, power-ups, persistencia,
   compartir (`obtenerSnapshot()`, `compartir()`, `DURACION_TOAST`) e
-  instalación (evento `beforeinstallprompt`). Importa `game-core.js`,
-  `game-fx.js` y `game-share.js` y exporta los comandos (`mover`, `deshacer`,
+  instalación (evento `beforeinstallprompt`). Importa `js/game-core.js`,
+  `app/game-fx.js` y `js/game-share.js` y exporta los comandos (`mover`, `deshacer`,
   `toggleBomba`, `nuevaPartida`, `mostrarVictoria`, `mostrarGameOver`,
   `restaurarPartida`, `reproducirJugada`, `pararReplay`,
   `INTERVALO_REPLAY`) que usan los tests de flujo.
-- `game-fx.js` — capa de efectos y feedback: slide/pop/fantasmas, puntos
+- `app/game-fx.js` — capa de efectos y feedback: slide/pop/fantasmas, puntos
   flotantes `+N`, sonido Web Audio y háptica. Recibe la `traza` de
-  `game-core.js` y **sus nodos FX nuevos viven SOLO en `#fx-layer`** (fuera de
+  `js/game-core.js` y **sus nodos FX nuevos viven SOLO en `#fx-layer`** (fuera de
   `#board`); lo único que pinta dentro de `#board` son efectos sobre los 16
   slots ya existentes — el pop añade la clase `.fusionando` a la `.cell`
   destino y el slide escribe `transform`/`transition` inline en su `.tile` —
   sin crear nunca un nodo nuevo ahí. Sin estado del juego.
-- `game-share.js` — dibujo de la captura: `RAMPA`, `PALETAS`, `MEDIDAS_CAPTURA`
+- `js/game-share.js` — dibujo de la captura: `RAMPA`, `PALETAS`, `MEDIDAS_CAPTURA`
   y `dibujarCaptura()` (canvas 2D puro, **sin DOM ni localStorage**). `RAMPA` es
   la única rampa del proyecto: `tests/share.test.js` la contrasta con la de
-  `style.css` para que no haya deriva entre CSS y captura.
+  `css/style.css` para que no haya deriva entre CSS y captura.
 - `manifest.json` — PWA: `start_url`/`scope` relativos y **2 iconos SVG**
   (`sizes: "any"`: `2048.svg` + `2048-maskable.svg`); no hay PNG 192/512
   (decisión D6) y el `og:image` 1200×630 vive en `icons/`, no en el manifest.
@@ -40,10 +45,10 @@ Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funcio
   obvios").
 - `icons/` — 4 ficheros commiteados: `2048.svg`, `2048-maskable.svg` (manifest)
   y los PNG `apple-touch-icon-180.png` / `og-image-1200x630.png` (D1/D6).
-- `scripts/generar-iconos.mjs` + `scripts/lib/ctx-software.mjs` — generan esos
+- `tools/generar-iconos.mjs` + `tools/lib/ctx-software.mjs` — generan esos
   PNG **sin dependencias** (zlib nativo); solo se ejecutan a mano con
   `npm run iconos` (nunca en test ni en CI).
-- `style.css` — temas y layout.
+- `css/style.css` — temas y layout.
 
 ## Comandos
 
@@ -51,9 +56,9 @@ Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funcio
 npm install     # dependencias SOLO de desarrollo (Vitest, jsdom, ESLint)
 npm test        # todos los tests (Vitest)
 npm run lint    # ESLint
-npm start       # servidor estático propio (scripts/servidor.mjs, sin deps) → http://localhost:8000
+npm start       # servidor estático propio (tools/servidor.mjs, sin deps) → http://localhost:8000
                 # alternativas: python -m http.server 8000 · npx serve .
-npm run iconos  # regenera icons/ desde scripts/generar-iconos.mjs (SOLO desarrollo:
+npm run iconos  # regenera icons/ desde tools/generar-iconos.mjs (SOLO desarrollo:
                 # NO corre en test ni en CI; los PNG ya están commiteados)
 ```
 
@@ -66,7 +71,7 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
   de animación y `esPartidaValida()`.
 - `tests/flujo.test.js` — flujos de UI con jsdom, incluidos los tests de regresión
   de los bugs P1 (entrada bloqueada tras la bienvenida; deshacer cierra el overlay).
-- `tests/markup.test.js` — arranca `game.js` contra el `index.html` REAL y valida
+- `tests/markup.test.js` — arranca `app/game.js` contra el `index.html` REAL y valida
   que todos los ids que consulta existen (evita deriva entre fixture y markup).
 - `tests/persistencia.test.js` — récord y tema en `localStorage` (jsdom).
 - `tests/animacion.test.js` — reconciliador de `render()` (identidad de nodos),
@@ -77,14 +82,14 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
 - `tests/restauracion.test.js` — clave `partida2048`: guardar, restaurar,
   borrar, claves inválidas y `stats2048` sin contaminar.
 - `tests/arranque.test.js` — arranque con partida guardada (import dinámico de
-  `game.js` como única importación del archivo).
+  `app/game.js` como única importación del archivo).
 - `tests/integracion.test.js` — batería de regresión del contrato: 16 hijos en
   `#board` siempre, FX fuera del tablero, claves aisladas, guards sin
   `AudioContext`/`vibrate`/`element.animate`, `prefers-reduced-motion` y el
   ciclo completo mover → deshacer → nueva partida → restaurar.
 - `tests/pwa.test.js` — PWA (entorno node): `manifest.json`, `sw.js`
   (precache, estrategias, `clients.claim()`, sin `skipWaiting`/`reload`),
-  `index.html` (meta/manifest), `game.js` (registro del SW), iconos PNG reales
+  `index.html` (meta/manifest), `app/game.js` (registro del SW), iconos PNG reales
   (firma e IHDR), reglas CSS de `.icon-btn[hidden]`/`.tap-44`/`.toast[hidden]`,
   `eslint.config.js` (override de `sw.js`) y `package.json`/`ci.yml` (sin
   dependencias nuevas en CI).
@@ -92,15 +97,15 @@ CI (`.github/workflows/ci.yml`) ejecuta exactamente esos dos pasos en push y PR.
   `// @vitest-environment jsdom`**): snapshot sin escrituras, cadena de
   fallback de `compartir()` sin Web Share (2 diálogos, sin `role="dialog"` de
   más), canvas desconectado, toast con fake timers, `AbortError` sin descarga,
-  `beforeinstallprompt`, anti-deriva `RAMPA`↔`style.css`, `dibujarCaptura()`
+  `beforeinstallprompt`, anti-deriva `RAMPA`↔`css/style.css`, `dibujarCaptura()`
   con un ctx stub y el botón "Compartir" **segundo** en los overlays de fin.
 - `tests/hitos.test.js` — power-ups por hitos (D6/D8, sub-bloque 2a): regla
-  pura en `game-core.js` (`calcularHitos`, `hitosAlcanzados`, umbrales
+  pura en `js/game-core.js` (`calcularHitos`, `hitosAlcanzados`, umbrales
   validados por `esPartidaValida`) **y** su integración en la UI: concesión
   +1 deshacer al 128 / +1 bomba al 256 con su toast, idempotencia y backfill
   SIN conceder en guardados antiguos (regresión de `arranque.test.js`).
 - `tests/reto.test.js` — reto diario (D5, sub-bloque 2a): `semillaDeFecha` y
-  `siguienteRng` puros en `game-core.js` **y** la UI (`#daily`):
+  `siguienteRng` puros en `js/game-core.js` **y** la UI (`#daily`):
   restauración del reto al arrancar, `rngEstado` que avanza exactamente 2
   pasos por spawn (D7), mismo día ⇒ mismo tablero (`vi.useFakeTimers({ toFake:
   ["Date"] })`), otro día ⇒ otro tablero, salida a modo normal con
@@ -133,7 +138,7 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   detecta `location.protocol === "file:"` con un script *clásico* (sí se ejecuta
   en `file://`) y muestra el aviso `#aviso-file` con las instrucciones. No quitar
   ese aviso: sin él la página queda muerta en silencio.
-- **Modal centralizado**: `hayModalAbierto()` (en `game.js`) es el único punto que
+- **Modal centralizado**: `hayModalAbierto()` (en `app/game.js`) es el único punto que
   decide si la entrada está bloqueada; la consultan `mover()` (teclado y swipe) y
   `toggleBomba()`. No repetir esta lógica en cada listener. **Única excepción
   (fase 05-fix)**: `toggleBomba()` comprueba además `timerOverlayFin !== null`
@@ -151,7 +156,7 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   `animacion.test.js` (2ª y última excepción autorizada a la línea roja).
   No reabrir esto sin acuerdo explícito.
 - **La bomba NO entra en el historial de deshacer** (recurso consumible). Decisión
-  de producto documentada en `game.js`; no cambiarla sin acordarlo.
+  de producto documentada en `app/game.js`; no cambiarla sin acordarlo.
 - **Reto diario (sub-bloque 2a, D5)**: `#daily` va en `.actions` ANTES de
   `#share` (el de compartir es siempre el último botón de la barra). En modo
   reto el spawn usa `rndReto()` (mulberry32 con `rngEstado` persistido); el
@@ -161,7 +166,7 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   comparte con el de siempre (`stats2048.record`, D5d).
 - **Replay del reto (sub-bloque 2d, "Reproduce mi jugada")**: el código
   `2048reto:<YYYY-MM-DD>:<LRUD…>` (máx. 5000) determina la partida ENTERA:
-  `reproducirSecuencia()` en `game-core.js` es un **dry-run puro** (un
+  `reproducirSecuencia()` en `js/game-core.js` es un **dry-run puro** (un
   movimiento sin cambio NO avanza el RNG) y en la UI `reproducir()` alimenta
   `mover()` en bucle de `setTimeout` (`INTERVALO_REPLAY = 300`, exportado).
   Mientras dura, el flag `reproduciendo` **silencia récord, guardado,
@@ -205,16 +210,16 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   (si hubo cambio; los hitos del turno se aplican ANTES de persistir),
   `deshacer()`, el handler de la bomba, `pagehide` y
   `visibilitychange` oculto; se **borra** en `nuevaPartida()` y al acabar la
-  partida. Se restaura SOLO si `esPartidaValida()` (de `game-core.js`) la
+  partida. Se restaura SOLO si `esPartidaValida()` (de `js/game-core.js`) la
   valida y no está bloqueada; si no, se borra y empieza partida nueva. Nunca
   `beforeunload`/`unload` y **sin diálogo de confirmación**.
 - **`render()` reconcilia, no reconstruye**: `asegurarRejilla()` crea UNA sola
   vez las 16 `.cell` con su `.tile` persistente y a partir de ahí `render()`
   solo actualiza texto, `data-value`, `len3/len4` y `.nueva` (re-fire con
   reflow forzado). La rampa sigue en `.cell`, así que **cero selectores de
-  `style.css` migrados** y `#board.children` sigue midiendo 16.
+  `css/style.css` migrados** y `#board.children` sigue midiendo 16.
 - **Animación = capa posterior, SIN lock de entrada**: estado y DOM se
-  resuelven síncronos en `mover()`; solo después `game-fx.js` anima con
+  resuelven síncronos en `mover()`; solo después `app/game-fx.js` anima con
   `transform`. `limpiarFx()` al inicio de `mover()`, `deshacer()`,
   `nuevaPartida()` y del handler de bomba interrumpe el turno anterior (los
   timers viejos mueren por "generación"): no acumula nodos/listeners y
@@ -225,7 +230,7 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   la bomba. **Contar o medir celdas SIEMPRE dentro de `#board`**, nunca sobre
   `document` entero.
 - **Interruptor único `#fx-toggle`** (`role="switch"` en `.actions`): gate
-  maestro de sonido y háptica (`feedbackActivo` en `game-fx.js`), ON por
+  maestro de sonido y háptica (`feedbackActivo` en `app/game-fx.js`), ON por
   defecto y **cero escrituras al arranque** (se preserva
   `expect(stats()).toBeNull()` de `persistencia.test.js`). `prefers-reduced-motion`
   gobierna SOLO las transformaciones visuales, no el feedback.
@@ -245,10 +250,10 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   eliminó por ser idéntico a `:root`. Si cambias un color del tema claro, tócalo en
   **ambos** bloques claros.
 - **Movimiento**: solo "left" está implementado; las otras direcciones se componen
-  con `transponer()`/`invertirFilas()` en `game-core.js`.
-- **`game-core.js` sigue PURO** (sin DOM, sin `localStorage`, sin eventos) y
+  con `transponer()`/`invertirFilas()` en `js/game-core.js`.
+- **`js/game-core.js` sigue PURO** (sin DOM, sin `localStorage`, sin eventos) y
   ahora exporta además `aplicarMovimiento().traza` (`{ movimientos, fusiones }`,
-  campo aditivo con el que `game-fx.js` anima) y `esPartidaValida()` (valida la
+  campo aditivo con el que `app/game-fx.js` anima) y `esPartidaValida()` (valida la
   forma de `partida2048`; nunca lanza). Toda regla nueva sigue yendo ahí.
 - **Algoritmo intacto**: el algoritmo de MOVIMIENTO no cambió — `comprimir`,
   fusión sin cadena, `dvh` en el layout y `passive: false` en `touchmove`
@@ -256,7 +261,7 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   representación DOM: `render()` **ya no reconstruye** las 16 celdas, las
   reconcilia con sus `.tile` persistentes (ver arriba) y la animación vive en
   `#fx-layer`, una capa aparte.
-- **Service worker `sw.js` (`2048-v1`)**: registro **clásico** en `game.js`
+- **Service worker `sw.js` (`2048-v1`)**: registro **clásico** en `app/game.js`
   (`navigator.serviceWorker.register("./sw.js")`, sin `await` de activación ni
   mensajes). `fetch` **network-first para documento, JS y CSS** (la red manda
   en desarrollo; si falla, caché → `./index.html`) y **cache-first para
@@ -286,14 +291,14 @@ Total: **230 tests en 14 ficheros** (`npm test` debe dar todo en verde).
   `tests/setup.js`** (el setup duplica el markup; si añades un id nuevo,
   añádelo en ambos). `#install` arranca `hidden` y solo se muestra con
   `beforeinstallprompt` (que hace `preventDefault()`, sin escrituras).
-- **`RAMPA` es única**: `game-share.js` la exporta y `style.css` la declara en
+- **`RAMPA` es única**: `js/game-share.js` la exporta y `css/style.css` la declara en
   los selectores `.cell[data-value="…"]`; `share.test.js` las contrasta línea
-  a línea. Si cambias un color en CSS, cámbialo también en `game-share.js` (o
+  a línea. Si cambias un color en CSS, cámbialo también en `js/game-share.js` (o
   viceversa).
 - **Botones de overlay**: `mostrarVictoria()`/`mostrarGameOver()` reciben los
   botones como array y el de **"Compartir" va SIEMPRE el último** (contrato
   testeado); sigue habiendo exactamente **dos** `role="dialog"` en la página.
-- **`npm run iconos` es de desarrollo**: `scripts/generar-iconos.mjs` usa
-  `scripts/lib/ctx-software.mjs` (zlib nativo) y **no corre en test ni en CI**;
+- **`npm run iconos` es de desarrollo**: `tools/generar-iconos.mjs` usa
+  `tools/lib/ctx-software.mjs` (zlib nativo) y **no corre en test ni en CI**;
   los PNG de `icons/` están commiteados (el test `pwa` valida firma e IHDR de
   los reales).

@@ -2,7 +2,7 @@
 // Tasks 4 y 11 — reto diario (D5): RNG sembrado en game-core.js (núcleo PURO)
 // y su integración contra la UI (#daily, determinismo por fecha, compartir).
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { semillaDeFecha, siguienteRng } from "../game-core.js";
+import { semillaDeFecha, siguienteRng } from "../js/game-core.js";
 
 describe("semillaDeFecha (D5a: fecha local YYYY-MM-DD)", () => {
   it("la misma fecha produce SIEMPRE el mismo número", () => {
@@ -102,7 +102,7 @@ const PARTIDA_RETO = {
 
 localStorage.setItem("partida2048", JSON.stringify(PARTIDA_RETO));
 
-const juego = await import("../game.js");
+const juego = await import("../app/game.js");
 
 // Textos de las 16 celdas en orden (vacíos incluidos): comparar tableros completos.
 function textosCeldas() {

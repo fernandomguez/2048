@@ -25,7 +25,7 @@ const PARTIDA = {
 localStorage.setItem("partida2048", JSON.stringify(PARTIDA));
 
 // ÚNICA importación de game.js en este archivo (dinámica, tras escribir la clave).
-const juego = await import("../game.js");
+const juego = await import("../app/game.js");
 
 function textosCeldas() {
   return [...document.getElementById("board").children]

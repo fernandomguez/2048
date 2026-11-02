@@ -15,8 +15,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import * as juego from "../game.js";
-import { RAMPA, PALETAS, MEDIDAS_CAPTURA, dibujarCaptura } from "../game-share.js";
+import * as juego from "../app/game.js";
+import { RAMPA, PALETAS, MEDIDAS_CAPTURA, dibujarCaptura } from "../js/game-share.js";
 
 // OJO con `new URL("literal", import.meta.url)`: Vite lo reescribe a la URL
 // del servidor de tests (http://localhost:3000/…) y el scheme ya no es file.
@@ -26,7 +26,7 @@ function leer(ruta) {
   return readFileSync(fileURLToPath(new URL(ruta, import.meta.url)), "utf8");
 }
 
-const CSS = leer("../style.css"); // leído una sola vez en el módulo (patrón markup.test.js)
+const CSS = leer("../css/style.css"); // leído una sola vez en el módulo (patrón markup.test.js)
 
 // --- HELPERS ---
 
