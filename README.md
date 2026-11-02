@@ -1,73 +1,110 @@
 # 2048
 
-El clásico juego **2048** en el navegador: desliza las fichas para fusionar
-números hasta conseguir la ficha 2048. JavaScript vanilla, sin frameworks ni
-build de producción.
+El clásico **2048** en el navegador: desliza las fichas, fusiona números iguales
+y llega a la ficha 2048. Hecho con **HTML, CSS y JavaScript vanilla**: sin
+frameworks, sin build y sin dependencias de producción.
 
-## Funcionalidades
+[![CI](https://github.com/fernandomguez/2048/actions/workflows/ci.yml/badge.svg)](https://github.com/fernandomguez/2048/actions/workflows/ci.yml)
 
-- Movimiento con **flechas del teclado** y **swipe** en móvil.
+## Características
+
+**Juego**
+
+- Controles con **flechas del teclado** y **swipe** en móvil.
 - **Deshacer** (3 usos) y **bomba** para eliminar una ficha (1 uso).
-- Puntuación y **récord** guardados en `localStorage`.
-- Tema **claro/oscuro** (sigue al sistema, con preferencia guardada).
-- **Fichas animadas**: deslizamiento al mover, pop de fusión y rebote de la
-  ficha nueva, con identidad de nodos (sin reconstruir el tablero).
-- **Puntos flotantes** (`+4`, `+8`…) que suben sobre la celda fusionada.
-- **Sonido y vibración** con interruptor (tonos sintetizados, sin archivos;
-  la vibración solo funciona en navegadores con soporte).
-- **Partida guardada automáticamente**: al recargar o volver atrás sigues
-  donde estabas (tablero, puntos, deshacer y bombas).
-- **Reto diario**: el mismo tablero determinista cada día (por semilla de la
+- **Power-ups por hitos**: +1 deshacer al llegar a 128, 512 y 1024; +1 bomba al
+  llegar a 256 y a 2048.
+- **Partida guardada automáticamente**: recarga o vuelve atrás y sigues donde
+  estabas (tablero, puntos, deshacer y bombas).
+- Puntuación y **récord** persistentes en `localStorage`.
+- El game over es definitivo: no hay rescate una vez bloqueado el tablero.
+
+**Reto diario y replay**
+
+- **Reto diario**: cada día el mismo tablero para todos (semilla derivada de la
   fecha local), con intentos ilimitados.
 - **Reproduce mi jugada**: al compartir en modo reto se añade un código
-  `2048reto:<fecha>:<secuencia>`; pégalo en "Ver jugada" y el juego
-  reproduce la partida entera sobre la semilla de ese día.
-- Pantalla de bienvenida, overlays de victoria y fin de partida.
+  `2048reto:<fecha>:<secuencia>`. Quien lo pegue en el panel de replay ve la
+  partida entera reproducida paso a paso, de cualquier fecha. Tu partida en
+  curso no se pierde ni se modifica durante la reproducción.
+
+**Experiencia**
+
+- Animaciones de deslizamiento, fusión y aparición de fichas, con puntos
+  flotantes (`+4`, `+8`…). Respeta `prefers-reduced-motion`.
+- Sonido y vibración sintetizados (Web Audio, sin archivos de audio), con
+  interruptor.
+- Tema **claro/oscuro** (sigue al sistema, con preferencia guardada).
+- **Compartir** una captura del tablero (Web Share, descarga o portapapeles).
+- **PWA instalable** y jugable sin conexión gracias al service worker.
 - Diseño adaptado a móvil, escritorio y pantallas horizontales bajas.
 
 ## Cómo ejecutarlo
 
-Es una aplicación estática, pero usa módulos ES (`type="module"`), así que
-hay que servirla por HTTP. **No basta con doblear-clic en `index.html`**: el
-navegador bloquea los módulos desde `file://` (si ocurre, el juego muestra un
-aviso con estas instrucciones en lugar de arrancar).
+Es una aplicación estática, pero usa módulos ES, así que hay que servirla por
+HTTP. **Abrir `index.html` con doble clic (`file://`) no funciona**: el
+navegador bloquea los módulos (si ocurre, el juego muestra un aviso con estas
+instrucciones).
 
 ```bash
-npm start                          # servidor local incluido (sin dependencias)
+git clone https://github.com/fernandomguez/2048.git
+cd 2048
+npm install      # solo dependencias de desarrollo; no hace falta para jugar
+npm start        # servidor local incluido, sin dependencias
 ```
 
-Y abrir <http://localhost:8000>.
-
-Alternativas sin `npm start`:
+Abre <http://localhost:8000>. Alternativas sin `npm start`:
 
 ```bash
-python -m http.server 8000   # o: npx serve .
+python -m http.server 8000     # o: npx serve .
 ```
+
+Al ser 100 % estático, también se puede publicar tal cual en GitHub Pages,
+Netlify o cualquier hosting de ficheros.
 
 ## Desarrollo
 
 ```bash
-npm install       # solo dependencias de desarrollo
-npm test          # ejecuta los tests (Vitest)
-npm run lint      # reviso de código (ESLint)
+npm test         # tests (Vitest + jsdom)
+npm run lint     # ESLint
 ```
 
-No hay build: los archivos de `game.js`, `game-core.js`, `game-fx.js`,
-`style.css` e `index.html` se sirven tal cual.
+Los tests y el lint se ejecutan en cada push y pull request con GitHub Actions.
+No hay paso de build: los ficheros se sirven tal cual.
 
-## Estructura
+## Arquitectura
+
+La lógica del juego está separada de la interfaz y de los efectos:
+
+```
+.
+├── index.html · manifest.json · sw.js   # raíz: el service worker debe vivir aquí (scope)
+├── js/      # módulos puros (sin DOM): reglas y dibujo de la captura
+├── app/     # interfaz: entradas, render, overlays y efectos
+├── css/     # estilos y temas
+├── icons/   # iconos PWA y og:image
+├── tests/   # Vitest (14 suites)
+├── tools/   # servidor local y generador de iconos (solo desarrollo)
+└── docs/    # documentación de diseño y estado del proyecto
+```
 
 | Archivo | Responsabilidad |
 | --- | --- |
-| `index.html` | Marcado, meta tags y accesibilidad de los overlays |
-| `game-core.js` | Lógica pura del juego (sin DOM ni localStorage) — testeada con Vitest |
-| `game.js` | Capa UI: entradas, render, overlays, power-ups, persistencia |
-| `game-fx.js` | Efectos: slide/pop/flotantes, sonido Web Audio y háptica (sin estado de juego) |
-| `style.css` | Temas (claro/oscuro) y layout `dvh` |
-| `tests/` | 14 suites: núcleo puro, flujos de UI (jsdom), markup real, persistencia, animación, feedback, restauración, arranque, integración, PWA, compartir, power-ups por hitos, reto diario y replay del reto |
+| `index.html` | Marcado, meta tags y accesibilidad |
+| `js/game-core.js` | Reglas puras: movimiento, fusión, RNG del reto, parser del replay. Sin DOM ni `localStorage` |
+| `app/game.js` | Capa de UI: entradas, render, overlays, persistencia, compartir e instalación |
+| `app/game-fx.js` | Efectos: animaciones, sonido Web Audio y háptica (sin estado de juego) |
+| `js/game-share.js` | Dibujo de la captura para compartir (canvas 2D) |
+| `css/style.css` | Temas claro/oscuro y layout |
+| `sw.js`, `manifest.json` | PWA: service worker y manifiesto |
+| `tools/` | Servidor local y generador de iconos (solo desarrollo) |
+| `tests/` | 14 suites, 230 tests: reglas, flujos de UI, persistencia, animación, PWA, compartir, reto y replay |
 
-## Tecnologías
+Para más detalle sobre decisiones de diseño y convenciones, consulta
+[`AGENTS.md`](AGENTS.md) y [`docs/DOCUMENTACION.md`](docs/DOCUMENTACION.md).
 
-- HTML + CSS + JavaScript vanilla (ES modules).
-- Vitest + jsdom (tests), ESLint (lint) — todo en dependencias de desarrollo.
-- GitHub Actions: lint y tests en cada push/PR.
+## Privacidad
+
+El juego no usa analítica ni envía datos a ningún servidor. Todo se guarda en
+tu navegador (`localStorage`). La única petición externa es la fuente
+*Space Grotesk* de Google Fonts.
