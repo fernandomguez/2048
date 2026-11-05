@@ -1,15 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="2048">
   <title>2048</title>
-  <!-- Icono "any": fondo #14171c + ficha ganadora 2048 (gradiente 135deg).
-       Space Grotesk NO hereda dentro de un SVG, así que se usa una
+  <!-- Icono "any": fondo #131722 + ficha ganadora 2048 de color PLANO
+       (#f0b429, regla de style.css en el tema pixel, esquinas cuadradas).
+       Press Start 2P NO hereda dentro de un SVG, así que se usa una
        tipografía de sistema genérica en negrita. -->
-  <defs>
-    <linearGradient id="ficha" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffd23f"/>
-      <stop offset="1" stop-color="#ff9a3d"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" fill="#14171c"/>
-  <rect x="86" y="86" width="340" height="340" rx="56" fill="url(#ficha)"/>
-  <text x="256" y="258" font-family="Verdana, Arial, Helvetica, sans-serif" font-size="104" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#241400">2048</text>
+  <rect width="512" height="512" fill="#131722"/>
+  <rect x="86" y="86" width="340" height="340" fill="#f0b429"/>
+  <text x="256" y="258" font-family="Verdana, Arial, Helvetica, sans-serif" font-size="104" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#241a02">2048</text>
 </svg>

@@ -82,7 +82,7 @@ function aplicarTema(tema) {
   // y así markup.test.js no amplía su escaneo) y con guard null: en jsdom
   // solo se monta el <body>, el <head> no existe y meta sería null.
   const metaTema = document.querySelector('meta[name="theme-color"]');
-  if (metaTema) metaTema.content = tema === "dark" ? "#14171c" : "#f4f6f9";
+  if (metaTema) metaTema.content = tema === "dark" ? "#131722" : "#f1f2f6";
 }
 
 // Al arrancar: si el usuario eligió tema, úsalo; si no, sigue al sistema.

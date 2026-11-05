@@ -269,7 +269,7 @@ js/game-share.js  → captura para compartir: RAMPA, PALETAS, MEDIDAS_CAPTURA y
                  DURACION_TOAST
 manifest.json  → PWA: start_url/scope + iconos (SVG en icons/, PNG 180 y
                  og 1200×630)
-sw.js          → service worker 2048-v1: network-first para documento, JS y
+sw.js          → service worker 2048-v2: network-first para documento, JS y
                  CSS; cache-first para iconos, manifest e imágenes; sin
                  skipWaiting ni recarga automática (clients.claim() sí)
 icons/         → 2048.svg · 2048-maskable.svg · apple-touch-icon-180.png
@@ -450,7 +450,7 @@ build, sin backend**.
     (2048.svg + 2048-maskable.svg) según D6 — no hay PNG 192/512.
   - `apple-touch-icon` 180 PNG + `<link rel=icon>` (fichero PNG real,
     generado).
-  - `sw.js` (`2048-v1`): precache de los 12 recursos, **network-first para
+  - `sw.js` (`2048-v2`): precache de los 12 recursos, **network-first para
     documento, JS y CSS** con fallback a caché y cache-first para iconos,
     manifest e imágenes; sin Google Fonts en caché (D4), **sin `skipWaiting()`
     ni recarga automática** (G7; `clients.claim()` sí toma el control de la
@@ -495,5 +495,5 @@ documenta (`AGENTS.md`/`DOCUMENTACION.md`) · D12 **sin push** en esta fase.
 > `482a121` + `a421eb0`.
 > **⏳ Pendiente:** verificación manual en Chrome (Task 12) — la CI no cubre
 > service worker, canvas ni Web Share; checklist en `outputs/bloque-3/02-plan.md`
-> (manifest, SW `activated`, caché `2048-v1`, offline, captura, Web Share e
+> (manifest, SW `activated`, caché `2048-v2`, offline, captura, Web Share e
 > instalación).

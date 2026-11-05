@@ -11,7 +11,7 @@
 //      acepta SVG en og:image) — se dibuja con dibujarCaptura() de
 //      game-share.js, el MISMO código de dibujo que usa el navegador
 //      (decisión D1). Deriva aceptada y documentada: el texto se
-//      rasteriza con la fuente bitmap de Node y con Space Grotesk en
+//      rasteriza con la fuente bitmap de Node y con Press Start 2P en
 //      el navegador; layout, rampa y composición son idénticos.
 //
 //  Reproducible: misma entrada ⇒ mismos bytes (sin chunks de fecha).
@@ -27,7 +27,7 @@ import { crearCtxSoftware, aPNG } from "./lib/ctx-software.mjs";
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // Snapshot de ejemplo FIJO para el og:image (tablero de muestra con
-// todos los tramos de la rampa, incluida la ficha 2048 con degradado).
+// todos los tramos de la rampa, incluida la ficha 2048 plana).
 const EJEMPLO = {
   board: [
     [2, 4, 8, 16],
@@ -48,18 +48,17 @@ function dibujarAppleTouch() {
   const ficha = lado - margen * 2;
 
   ctx.globalAlpha = 1;
-  ctx.fillStyle = "#14171c";
+  ctx.fillStyle = "#131722";
   ctx.fillRect(0, 0, lado, lado);
 
-  const gradiente = ctx.createLinearGradient(margen, margen, margen + ficha, margen + ficha);
-  gradiente.addColorStop(0, "#ffd23f");
-  gradiente.addColorStop(1, "#ff9a3d");
-  ctx.fillStyle = gradiente;
+  // Tema pixel: ficha 2048 de color PLANO (#f0b429, la regla de style.css),
+  // esquinas cuadradas y número con la tinta oscura de la rampa.
+  ctx.fillStyle = "#f0b429";
   ctx.beginPath();
-  ctx.roundRect(margen, margen, ficha, ficha, 26);
+  ctx.roundRect(margen, margen, ficha, ficha, 0);
   ctx.fill();
 
-  ctx.fillStyle = "#241400";
+  ctx.fillStyle = "#241a02";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = "700 38px sans-serif";

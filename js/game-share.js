@@ -25,53 +25,57 @@
 //  iconos (Node) y con él el og:image.
 // ============================================================
 
-// Fuentes: el navegador usa Space Grotesk; offline (o en Node) cae a
-// system-ui / la fuente bitmap de ctx-software.mjs. El LAYOUT es idéntico.
-const FUENTE = '"Space Grotesk", system-ui, sans-serif';
+// Fuentes: el navegador usa la doble del tema pixel (style.css): Press
+// Start 2P para LOGO y NÚMEROS de ficha, Silkscreen para etiquetas y
+// marcador. Offline (o en Node) ambas caen a system-ui / la fuente bitmap
+// de ctx-software.mjs. El LAYOUT es idéntico. Sin weight: son fontfaces
+// monoweight y el "700" sintético emborronaría los bordes.
+const FUENTE_NUMEROS = '"Press Start 2P", system-ui, sans-serif';
+const FUENTE_TEXTO = '"Silkscreen", system-ui, sans-serif';
 
 // --- PALETAS DEL CHROME (tabla U1 de 01-analysis; estilos de :root) ---
 export const PALETAS = {
   dark: {
-    bg: "#14171c",
-    board: "#1e242c",
-    cell: "#262d37",
-    ink: "#e9edf2",
-    inkDim: "#8a94a3",
-    accent: "#f5b301",
+    bg: "#131722",
+    board: "#1b2130",
+    cell: "#252c3e",
+    ink: "#f2f5fb",
+    inkDim: "#8a93a8",
+    accent: "#f2b03c",
   },
   light: {
-    bg: "#f4f6f9",
-    board: "#e6eaf0",
-    cell: "#d7dde5",
-    ink: "#1e242c",
-    inkDim: "#5b6472",
-    accent: "#f5b301",
+    bg: "#f1f2f6",
+    board: "#dde1ea",
+    cell: "#cbd1de",
+    ink: "#1f2740",
+    inkDim: "#6a7387",
+    accent: "#f2b03c",
   },
 };
 
 // --- RAMPA POR VALOR — idéntica en AMBOS temas y literal de
-// style.css (.cell[data-value="…"], líneas 217-237). El test
-// anti-deriva la compara fichero a fichero: si cambias un color en
-// CSS, cámbialo aquí (y viceversa). ---
+// style.css (.cell[data-value="…"]). El test anti-deriva la compara
+// fichero a fichero: si cambias un color en CSS, cámbialo aquí
+// (y viceversa). Colores planos: SIN degradados en todo el tema pixel. ---
 export const RAMPA = {
-  2:    { fondo: "#2f3b52", texto: "#cdd6e6" },
-  4:    { fondo: "#2f4f6e", texto: "#dbe6f2" },
-  8:    { fondo: "#2b7f8f", texto: "#f4f7fb" },
-  16:   { fondo: "#2aa07a", texto: "#f4f7fb" },
-  32:   { fondo: "#5cbf4c", texto: "#10240c" },
-  64:   { fondo: "#c6c63b", texto: "#23230a" },
-  128:  { fondo: "#e8b23a", texto: "#241900" },
-  256:  { fondo: "#ef8a37", texto: "#1f0f00" },
-  512:  { fondo: "#e95d3c", texto: "#f4f7fb" },
-  1024: { fondo: "#db3f68", texto: "#f4f7fb" },
-  2048: { degradado: ["#ffd23f", "#ff9a3d"], texto: "#241400" },
-  4096: { degradado: ["#fff1a8", "#ff7a3d"], texto: "#241400" },
-  8192: { degradado: ["#fff1a8", "#ff7a3d"], texto: "#241400" },
+  2:    { fondo: "#3d4b6e", texto: "#eaf0f9" },
+  4:    { fondo: "#2c6ca8", texto: "#eaf0f9" },
+  8:    { fondo: "#1e9e63", texto: "#103324" },
+  16:   { fondo: "#3bb44a", texto: "#0f2e17" },
+  32:   { fondo: "#8fbe2e", texto: "#18260a" },
+  64:   { fondo: "#c2c22e", texto: "#252503" },
+  128:  { fondo: "#e9b92e", texto: "#251a03" },
+  256:  { fondo: "#ee8a31", texto: "#261102" },
+  512:  { fondo: "#e85d3a", texto: "#2a0f05" },
+  1024: { fondo: "#e9538b", texto: "#2a0a16" },
+  2048: { fondo: "#f0b429", texto: "#241a02" },
+  4096: { fondo: "#7a3e8f", texto: "#f2f5fb" },
+  8192: { fondo: "#7a3e8f", texto: "#f2f5fb" },
 };
 
 // Valores por encima de 8192: en CSS heredan .cell (fondo var(--cell) y
-// color #f4f7fb). Este fallback reproduce ese mismo comportamiento.
-const RAMPA_FALLBACK = { fondo: null, texto: "#f4f7fb" };
+// color var(--ink)). Este fallback reproduce ese mismo comportamiento.
+const RAMPA_FALLBACK = { fondo: null, texto: null };
 
 // --- MEDIDAS DE LAYOUT ---
 // Los dos lienzos son "inputs"; el resto son px lógicos del lienzo
@@ -88,8 +92,8 @@ export const MEDIDAS_CAPTURA = {
   separacion: 30,   // hueco entre bloques de la cabecera
   padding: 18,      // borde interior del tablero
   hueco: 14,        // separación entre celdas
-  radio: 22,        // radio de esquina del tablero
-  radioCelda: 14,   // radio de esquina de cada hueco / ficha
+  radio: 0,         // radio de esquina del tablero (tema pixel: cuadrado)
+  radioCelda: 0,    // radio de esquina de cada hueco / ficha (idem)
   filaMax: 900,     // ancho máximo de la fila de marcadores
   fuentes: {
     marca: 132,     // "2048" de la cabecera
@@ -98,12 +102,10 @@ export const MEDIDAS_CAPTURA = {
   },
 };
 
-// Gradiente del h1 (style.css:97): linear-gradient(120deg, …).
-const MARCA_DEGRADADO = [
-  [0, "#f5b301"],
-  [0.6, "#ff7a3d"],
-  [1, "#ff4d6d"],
-];
+// Color del h1 (style.css): var(--accent), sólido. El logo dejó de ser
+// gradiente con el tema pixel (ahora es color plano + sombra dura).
+// Consta aquí para que el canvas use EXACTAMENTE el mismo tono del CSS.
+const MARCA_COLOR = "#f2b03c";
 
 // ------------------------------------------------------------
 //  Dibujo
@@ -122,12 +124,12 @@ function rellenarRedondeado(ctx, x, y, w, h, r) {
 
 // Reduce la fuente hasta que el texto quepa en maxAncho (deja
 // ctx.font ajustado y devuelve el tamaño usado).
-function ajustar(ctx, texto, maxAncho, tamInicial, tamMin) {
+function ajustar(ctx, texto, maxAncho, tamInicial, tamMin, fuente = FUENTE_TEXTO) {
   let tam = tamInicial;
-  ctx.font = `700 ${tam}px ${FUENTE}`;
+  ctx.font = `${tam}px ${fuente}`;
   while (tam > tamMin && ctx.measureText(texto).width > maxAncho) {
     tam = Math.max(tamMin, tam - Math.max(1, Math.round(tam * 0.06)));
-    ctx.font = `700 ${tam}px ${FUENTE}`;
+    ctx.font = `${tam}px ${fuente}`;
   }
   return tam;
 }
@@ -139,7 +141,7 @@ function dimensiones(escala) {
     etiquetaTam: Math.max(9, Math.round(f.etiqueta * escala)),
     valorTam: Math.max(12, Math.round(f.valor * escala)),
     sep: Math.round(MEDIDAS_CAPTURA.separacion * escala),
-    radioCelda: Math.max(5, Math.round(MEDIDAS_CAPTURA.radioCelda * escala)),
+    radioCelda: Math.round(MEDIDAS_CAPTURA.radioCelda * escala),
     filaMax: Math.round(MEDIDAS_CAPTURA.filaMax * escala),
   };
 }
@@ -162,41 +164,36 @@ function dibujarCaja(ctx, x, y, w, h, etiqueta, valor, paleta, dim) {
   ctx.textBaseline = "middle";
 
   ctx.fillStyle = paleta.inkDim;
-  ctx.font = `700 ${dim.etiquetaTam}px ${FUENTE}`;
+  ctx.font = `${dim.etiquetaTam}px ${FUENTE_TEXTO}`;
   ctx.fillText(etiqueta, cx, y + h * 0.3);
 
   ctx.fillStyle = paleta.ink;
   const texto = String(valor);
-  ajustar(ctx, texto, w - dim.sep, dim.valorTam, Math.max(10, Math.round(dim.valorTam * 0.5)));
+  ajustar(ctx, texto, w - dim.sep, dim.valorTam, Math.max(10, Math.round(dim.valorTam * 0.5)), FUENTE_TEXTO);
   ctx.fillText(texto, cx, y + h * 0.7);
 }
 
-// Cabecera: marca "2048" con el gradiente del h1 + fila de marcadores.
+// Cabecera: marca "2048" con el color del h1 + fila de marcadores.
 // alineado: "centro" (captura cuadrada) | "izquierda" (panel apaisado).
 // Devuelve la altura ocupada.
 function dibujarCabecera(ctx, x, y, anchoC, snapshot, paleta, dim, alineado) {
   const alto = alturaCabecera(dim);
   const centrado = alineado === "centro";
 
-  // --- Marca "2048" con el gradiente del h1 ---
+  // --- Marca "2048" con el color del h1 ---
   let marcaTam = dim.marcaTam;
-  ctx.font = `700 ${marcaTam}px ${FUENTE}`;
+  ctx.font = `${marcaTam}px ${FUENTE_NUMEROS}`;
   let marcaAncho = ctx.measureText("2048").width;
   while (marcaTam > 12 && marcaAncho > anchoC) {
     marcaTam = Math.max(12, marcaTam - Math.max(1, Math.round(marcaTam * 0.06)));
-    ctx.font = `700 ${marcaTam}px ${FUENTE}`;
+    ctx.font = `${marcaTam}px ${FUENTE_NUMEROS}`;
     marcaAncho = ctx.measureText("2048").width;
   }
 
   const marcaX = centrado ? x + anchoC / 2 : x;
-  // El gradiente recorre exactamente el ancho del texto, sea cual sea
-  // la alineación (izquierda en el panel apaisado, centrada si no).
-  const marcaIzq = centrado ? marcaX - marcaAncho / 2 : marcaX;
-  const gradiente = ctx.createLinearGradient(marcaIzq, y, marcaIzq + marcaAncho, y + marcaTam);
-  for (const [posicion, color] of MARCA_DEGRADADO) gradiente.addColorStop(posicion, color);
 
   ctx.globalAlpha = 1;
-  ctx.fillStyle = gradiente;
+  ctx.fillStyle = MARCA_COLOR;
   ctx.textAlign = centrado ? "center" : "left";
   ctx.textBaseline = "middle";
   ctx.fillText("2048", marcaX, y + marcaTam / 2);
@@ -219,8 +216,8 @@ function dibujarCabecera(ctx, x, y, anchoC, snapshot, paleta, dim, alineado) {
 function dibujarTablero(ctx, x, y, lado, board, paleta, escala) {
   const padding = Math.max(4, Math.round(MEDIDAS_CAPTURA.padding * escala));
   const hueco = Math.max(3, Math.round(MEDIDAS_CAPTURA.hueco * escala));
-  const radio = Math.max(6, Math.round(MEDIDAS_CAPTURA.radio * escala));
-  const radioC = Math.max(4, Math.round(MEDIDAS_CAPTURA.radioCelda * escala));
+  const radio = Math.round(MEDIDAS_CAPTURA.radio * escala);   // 0 en el tema pixel
+  const radioC = Math.round(MEDIDAS_CAPTURA.radioCelda * escala);
   const celda = Math.floor((lado - padding * 2 - hueco * 3) / 4);
 
   ctx.globalAlpha = 1;
@@ -253,9 +250,9 @@ function dibujarTablero(ctx, x, y, lado, board, paleta, escala) {
       }
       rellenarRedondeado(ctx, celdaX, celdaY, celda, celda, radioC);
 
-      ctx.fillStyle = entrada.texto;
+      ctx.fillStyle = entrada.texto || paleta.ink;
       const texto = String(valor);
-      ajustar(ctx, texto, celda * 0.82, Math.round(celda * 0.44), Math.round(celda * 0.18));
+      ajustar(ctx, texto, celda * 0.82, Math.round(celda * 0.44), Math.round(celda * 0.18), FUENTE_NUMEROS);
       ctx.fillText(texto, celdaX + celda / 2, celdaY + celda / 2);
     }
   }

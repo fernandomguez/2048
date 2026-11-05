@@ -335,7 +335,7 @@ describe("dibujarCaptura()", () => {
     expect(llamadas.textos.map((t) => t.texto)).toContain("2048");
     // Primer relleno = fondo del tema que el usuario ve (decisión D3).
     expect(llamadas.rellenos[0]).toBe(PALETAS[snapshot.tema].bg);
-    expect(PALETAS[snapshot.tema].bg).toBe("#f4f6f9"); // tema claro del fixture jsdom
+    expect(PALETAS[snapshot.tema].bg).toBe("#f1f2f6"); // tema claro del fixture jsdom
   });
 });
 

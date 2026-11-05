@@ -40,7 +40,7 @@ Los módulos ES se sirven por HTTP: abrir `index.html` con `file://` **no funcio
 - `manifest.json` — PWA: `start_url`/`scope` relativos y **2 iconos SVG**
   (`sizes: "any"`: `2048.svg` + `2048-maskable.svg`); no hay PNG 192/512
   (decisión D6) y el `og:image` 1200×630 vive en `icons/`, no en el manifest.
-- `sw.js` — service worker `2048-v1`: **network-first** para documento, JS y
+- `sw.js` — service worker `2048-v2`: **network-first** para documento, JS y
   CSS; **cache-first** para iconos, manifest e imágenes (ver "Hechos no
   obvios").
 - `icons/` — 4 ficheros commiteados: `2048.svg`, `2048-maskable.svg` (manifest)
@@ -278,7 +278,7 @@ Total: **239 tests en 15 ficheros** (`npm test` debe dar todo en verde).
   representación DOM: `render()` **ya no reconstruye** las 16 celdas, las
   reconcilia con sus `.tile` persistentes (ver arriba) y la animación vive en
   `#fx-layer`, una capa aparte.
-- **Service worker `sw.js` (`2048-v1`)**: registro **clásico** en `app/game.js`
+- **Service worker `sw.js` (`2048-v2`)**: registro **clásico** en `app/game.js`
   (`navigator.serviceWorker.register("./sw.js")`, sin `await` de activación ni
   mensajes). `fetch` **network-first para documento, JS y CSS** (la red manda
   en desarrollo; si falla, caché → `./index.html`) y **cache-first para

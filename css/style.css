@@ -1,52 +1,64 @@
 /* =========================================================
-   2048 — estilos
-   Color de las fichas = rampa de "temperatura": frío (bajos) a
-   caliente (altos). El "chrome" (fondo, tablero, texto) cambia
+   2048 — estilos · TEMA PIXEL
+   Estética retro: tipografía Press Start 2P, esquinas
+   cuadradas, colores planos (sin degradados ni glows).
+   Color de las fichas = rampa plana por valor, idéntica en
+   ambos temas. El "chrome" (fondo, tablero, texto) cambia
    según el tema (sistema o elección del usuario).
    ========================================================= */
 
 :root {
   /* Chrome — TEMA OSCURO (por defecto) */
-  --bg:        #14171c;
-  --bg-glow:   #1d2530;
-  --bg-2:      #191f28;
-  --board:     #1e242c;
-  --cell:      #262d37;
-  --ink:       #e9edf2;
-  --ink-dim:   #8a94a3;
-  --line:      #2c333d;
-  --overlay-bg: rgba(20, 23, 28, 0.82);
+  --bg:        #131722;
+  --bg-2:      #171b29;
+  --board:     #1b2130;
+  --cell:      #252c3e;
+  --ink:       #f2f5fb;
+  --ink-dim:   #8a93a8;
+  --line:      #2a3145;
+  --overlay-bg: rgba(19, 23, 34, 0.86);
 
-  --accent:    #f5b301;
-  --radius:    14px;
+  --accent:      #f2b03c;   /* dorado: marca 2048 y botón primario */
+  --accent-ink:  #1a1c2a;   /* tinta sobre dorado (siempre oscura) */
+  --marca-sombra: #55310b;  /* sombra dura del logo "2048" */
+  --sombra-dura: rgba(0, 0, 0, 0.4);
+
+  --radius:    0px;
+  /* Doble tipografía pixel: Press Start 2P SOLO como display (logo y
+     números de ficha, no tiene minúsculas); Silkscreen para todo el
+     texto de la interfaz, mucho más legible en cuerpo y tamaño pequeño. */
+  --fuente: "Press Start 2P", system-ui, sans-serif;
+  --fuente-texto: "Silkscreen", system-ui, sans-serif;
 }
 
 /* Tema claro si lo pide el SISTEMA y el usuario no ha forzado nada */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --bg:        #f4f6f9;
-    --bg-glow:   #e9eef5;
-    --bg-2:      #eef1f6;
-    --board:     #e6eaf0;
-    --cell:      #d7dde5;
-    --ink:       #1e242c;
-    --ink-dim:   #5b6472;
-    --line:      #cdd4de;
-    --overlay-bg: rgba(244, 246, 249, 0.86);
+    --bg:        #f1f2f6;
+    --bg-2:      #eaecf2;
+    --board:     #dde1ea;
+    --cell:      #cbd1de;
+    --ink:       #1f2740;
+    --ink-dim:   #6a7387;
+    --line:      #c6ccda;
+    --overlay-bg: rgba(241, 242, 246, 0.88);
+    --marca-sombra: #b98a22;
+    --sombra-dura: rgba(31, 39, 64, 0.25);
   }
 }
 
 /* Tema claro FORZADO por el usuario */
 :root[data-theme="light"] {
-  --bg:        #f4f6f9;
-  --bg-glow:   #e9eef5;
-  --bg-2:      #eef1f6;
-  --board:     #e6eaf0;
-  --cell:      #d7dde5;
-  --ink:       #1e242c;
-  --ink-dim:   #5b6472;
-  --line:      #cdd4de;
-  --overlay-bg: rgba(244, 246, 249, 0.86);
+  --bg:        #f1f2f6;
+  --bg-2:      #eaecf2;
+  --board:     #dde1ea;
+  --cell:      #cbd1de;
+  --ink:       #1f2740;
+  --ink-dim:   #6a7387;
+  --line:      #c6ccda;
+  --overlay-bg: rgba(241, 242, 246, 0.88);
+  --marca-sombra: #b98a22;
+  --sombra-dura: rgba(31, 39, 64, 0.25);
 }
 
 /* Tema oscuro forzado: no hace falta bloque explícito. `:root` YA es el tema
@@ -66,12 +78,9 @@ body {
   display: grid;
   place-items: center;                 /* centra el juego en la pantalla */
   padding: 12px;
-  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-family: var(--fuente-texto);
   color: var(--ink);
-  background:
-    radial-gradient(700px 400px at 80% -10%, var(--bg-glow) 0%, transparent 60%),
-    radial-gradient(600px 500px at -10% 110%, var(--bg-2) 0%, transparent 55%),
-    var(--bg);
+  background: var(--bg);               /* plano: sin glow, este es un juego pixel */
   font-variant-numeric: tabular-nums;
 }
 
@@ -81,23 +90,27 @@ body {
 .app { width: min(94vw, 460px, 62dvh); }
 
 /* ---- Cabecera ---- */
+/* El logo ocupa la altura de la fila de marcadores: centrado vertical
+   y a tamaño display (cap 2.9rem = 4 dígitos de ~46px caben junto al
+   panel en 460px; 8.5vw lo escala en pantallas estrechas). */
 .topbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
 }
 
+/* Logo "2048": color plano + sombra dura desplazada (estilo pixel).
+   Display: Press Start 2P. */
 h1 {
-  font-size: 2.8rem;
-  font-weight: 700;
-  letter-spacing: -1px;
-  line-height: 1;
-  background: linear-gradient(120deg, #f5b301, #ff7a3d 60%, #ff4d6d);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-family: var(--fuente);
+  font-size: clamp(2rem, 8.5vw, 2.9rem);
+  font-weight: 400;
+  line-height: 1.22;
+  white-space: nowrap;
+  color: var(--accent);
+  text-shadow: 3px 3px 0 var(--marca-sombra);
 }
 
 .panel { display: flex; gap: 8px; align-items: center; }
@@ -106,21 +119,33 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 72px;
-  padding: 7px 11px;
+  min-width: 88px;
+  padding: 9px 10px;
   background: var(--board);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
 }
 
 .score-label {
   font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   color: var(--ink-dim);
 }
 
-.score-value { font-size: 1.3rem; font-weight: 600; }
+.score-value {
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin-top: 6px;
+}
+
+/* Con logo a tamaño display, en pantallas estrechas el panel se compacta
+   para que siga cabiendo al lado. */
+@media (max-width: 360px) {
+  .score-box { min-width: 70px; padding: 7px 8px; }
+  .score-value { font-size: 0.9rem; }
+  .panel { gap: 6px; }
+}
 
 /* ---- Acciones ---- */
 .actions {
@@ -131,26 +156,33 @@ h1 {
   margin-bottom: 14px;
 }
 
+/* Botón pixel: color plano + sombra dura que "se hunde" al pulsar.
+   Fuente: Silkscreen (la de texto); Press Start 2P queda reservado para
+   logo y fichas. */
 .btn {
   font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--bg);
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--accent-ink);
   background: var(--accent);
   border: none;
-  border-radius: 10px;
-  padding: 10px 18px;
+  border-radius: var(--radius);
+  padding: 11px 16px;
   cursor: pointer;
-  transition: transform 0.12s ease, filter 0.12s ease, background 0.15s ease, color 0.15s ease;
+  box-shadow: 3px 3px 0 var(--sombra-dura);
+  transition: transform 0.12s ease, filter 0.12s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.12s ease;
 }
 .btn:hover { filter: brightness(1.08); }
-.btn:active { transform: scale(0.97); }
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--sombra-dura);
+}
 .btn.ghost {
   background: transparent;
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
 }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; filter: none; box-shadow: 3px 3px 0 var(--sombra-dura); }
 
 /* Barra inferior (instalar, reto diario, ver jugada, compartir): debajo del
    tablero, con icono + texto. Cuadrícula: los botones visibles se reparten una
@@ -176,24 +208,26 @@ h1 {
 }
 .actions-bottom .icon-btn {
   justify-content: center;
-  padding: 9px 8px;
-  gap: 6px;
-  font-size: 0.8rem;
+  padding: 10px 8px;
+  gap: 7px;
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 .actions-bottom .icon-btn svg { flex: none; }
+.actions-bottom .icon-btn svg,
+.icon-btn svg { transform: scale(0.85); } /* iconos de 18px caben junto a letra pixel ancha */
 
 /* Botones con icono SVG + contador */
 .icon-btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 13px;
+  padding: 10px 13px;
 }
 .icon-btn svg { display: block; }
-.icon-btn .count { font-size: 0.8rem; font-weight: 700; min-width: 1ch; text-align: center; }
-.icon-btn.armed { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-.icon-btn.theme-toggle { padding: 9px 11px; }
+.icon-btn .count { font-size: 0.8rem; font-weight: 400; min-width: 1ch; text-align: center; }
+.icon-btn.armed { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.icon-btn.theme-toggle { padding: 10px 11px; }
 
 /* [hidden] debe GANAR a display:inline-flex de .icon-btn (el [hidden] de la
    UA pierde por especificidad): si no, #install se vería siempre.
@@ -212,36 +246,38 @@ h1 {
   margin-top: 14px;
   padding: 12px;
   background: var(--board);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--radius);
 }
 #replay-panel[hidden] { display: none; }
 #replay-panel label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--ink-dim);
+  line-height: 1.8;
 }
 #replay-input {
   width: 100%;
   resize: vertical;
-  font-family: ui-monospace, "Cascadia Mono", monospace;
-  font-size: 0.85rem;
+  font-family: var(--fuente-texto);
+  font-size: 0.75rem;
+  line-height: 1.8;
   color: var(--ink);
   background: var(--cell);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 10px;
 }
 .replay-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Reto diario activo (D5c): aria-pressed lo escribe game.js al arrancar un
    reto. Mismo tratamiento visual que .icon-btn.armed. Los colores salen de
-   las variables del tema (--accent / --bg), así que UNA regla sirve para el
-   tema claro y el oscuro (R8) sin duplicar bloques. */
+   las variables del tema (--accent / --accent-ink), así que UNA regla sirve
+   para el tema claro y el oscuro (R8) sin duplicar bloques. */
 #daily[aria-pressed="true"] {
   background: var(--accent);
-  color: var(--bg);
+  color: var(--accent-ink);
   border-color: var(--accent);
 }
 
@@ -267,23 +303,27 @@ h1 {
   gap: 10px;
   padding: 10px;
   background: var(--board);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--radius);
   aspect-ratio: 1;
 }
 
+/* Celda pixel: cuadrada, sin radios. Los números van en Press Start 2P
+   (ocupa ~1em por dígito: los tamaños escalan con la longitud mediante
+   las classes len3/len4). */
 .cell {
   display: grid;
   place-items: center;
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--cell);
-  font-weight: 700;
-  font-size: clamp(1.3rem, 8vw, 2.4rem);
-  color: #f4f7fb;
+  font-family: var(--fuente);
+  font-weight: 400;
+  font-size: clamp(1rem, 4.6vw, 1.55rem);
+  color: var(--ink);
   user-select: none;
 }
-.cell.len3 { font-size: clamp(1.1rem, 6.5vw, 2rem); }
-.cell.len4 { font-size: clamp(0.9rem, 5vw, 1.6rem); }
+.cell.len3 { font-size: clamp(0.7rem, 3.2vw, 1.1rem); }
+.cell.len4 { font-size: clamp(0.52rem, 2.6vw, 0.85rem); }
 
 /* Ficha persistente dentro de cada .cell (identidad de nodos). Hereda el
    aspecto de su slot: la rampa data-value sigue EN .cell, así que cero
@@ -294,28 +334,25 @@ h1 {
   border-radius: inherit;
 }
 
-/* ---- Rampa de temperatura por valor (igual en ambos temas) ---- */
-.cell[data-value="2"]    { background: #2f3b52; color: #cdd6e6; }
-.cell[data-value="4"]    { background: #2f4f6e; color: #dbe6f2; }
-.cell[data-value="8"]    { background: #2b7f8f; color: #f4f7fb; }
-.cell[data-value="16"]   { background: #2aa07a; color: #f4f7fb; }
-.cell[data-value="32"]   { background: #5cbf4c; color: #10240c; }
-.cell[data-value="64"]   { background: #c6c63b; color: #23230a; }
-.cell[data-value="128"]  { background: #e8b23a; color: #241900; }
-.cell[data-value="256"]  { background: #ef8a37; color: #1f0f00; }
-.cell[data-value="512"]  { background: #e95d3c; color: #f4f7fb; }
-.cell[data-value="1024"] { background: #db3f68; color: #f4f7fb; box-shadow: 0 0 16px rgba(219, 63, 104, 0.5); }
-.cell[data-value="2048"] {
-  background: linear-gradient(135deg, #ffd23f, #ff9a3d);
-  color: #241400;
-  box-shadow: 0 0 26px rgba(255, 190, 60, 0.65);
-}
+/* ---- Rampa plana por valor (igual en ambos temas) ----
+   Colores planos saturados, estilo de la referencia pixel: fríos y
+   oscuros en los bajos (texto claro), brillantes en los medios (texto
+   oscuro) y oscuros de nuevo en los extremos (+4096). SIN degradados.
+   RAMPA de js/game-share.js replica ESTAS REGLAS literalmente
+   (test anti-deriva de share.test.js). */
+.cell[data-value="2"]    { background: #3d4b6e; color: #eaf0f9; }
+.cell[data-value="4"]    { background: #2c6ca8; color: #eaf0f9; }
+.cell[data-value="8"]    { background: #1e9e63; color: #103324; }
+.cell[data-value="16"]   { background: #3bb44a; color: #0f2e17; }
+.cell[data-value="32"]   { background: #8fbe2e; color: #18260a; }
+.cell[data-value="64"]   { background: #c2c22e; color: #252503; }
+.cell[data-value="128"]  { background: #e9b92e; color: #251a03; }
+.cell[data-value="256"]  { background: #ee8a31; color: #261102; }
+.cell[data-value="512"]  { background: #e85d3a; color: #2a0f05; }
+.cell[data-value="1024"] { background: #e9538b; color: #2a0a16; }
+.cell[data-value="2048"] { background: #f0b429; color: #241a02; }
 .cell[data-value="4096"],
-.cell[data-value="8192"] {
-  background: linear-gradient(135deg, #fff1a8, #ff7a3d);
-  color: #241400;
-  box-shadow: 0 0 34px rgba(255, 210, 80, 0.8);
-}
+.cell[data-value="8192"] { background: #7a3e8f; color: #f2f5fb; }
 
 /* ---- Animación: ficha recién aparecida ---- */
 @keyframes aparece {
@@ -373,10 +410,11 @@ h1 {
 .fx-flotante {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-weight: 700;
-  font-size: clamp(1rem, 6vw, 1.6rem);
+  font-family: var(--fuente);          /* display: +N en pixel coqueto */
+  font-weight: 400;
+  font-size: clamp(0.9rem, 5vw, 1.4rem);
   color: var(--accent);
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  text-shadow: 2px 2px 0 var(--sombra-dura);
   pointer-events: none;
   animation: flotante-sube 0.7s ease-out forwards;
 }
@@ -401,20 +439,26 @@ h1 {
 .overlay[hidden] { display: none; }
 
 .overlay-card { text-align: center; padding: 24px; }
-.overlay-title { font-size: 2rem; font-weight: 700; margin-bottom: 6px; }
-.overlay-text { color: var(--ink-dim); margin-bottom: 18px; }
+.overlay-title {
+  font-family: var(--fuente);
+  font-size: 1.25rem;
+  font-weight: 400;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+.overlay-text { color: var(--ink); font-size: 0.8rem; line-height: 1.7; margin-bottom: 18px; }
 .overlay-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 /* ---- Bienvenida ---- */
 .welcome-card {
   background: var(--board);
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
   max-width: 340px;
   width: 90%;
   padding: 26px 24px;
   text-align: center;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 8px 8px 0 var(--sombra-dura);
   animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
   /* La lista de novedades creció (Bloque 1): en pantallas bajas la tarjeta
      no puede desbordar el tablero (body tiene overflow:hidden y se recortaría). */
@@ -422,25 +466,39 @@ h1 {
   overflow-y: auto;
 }
 .welcome-overlay.cerrando .welcome-card { animation: popOut 0.18s ease-in forwards; }
-.welcome-title { font-size: 1.7rem; font-weight: 700; margin-bottom: 12px; }
-.welcome-text { color: var(--ink); line-height: 1.55; margin-bottom: 16px; }
+.welcome-title {
+  font-family: var(--fuente);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.7;
+  margin-bottom: 16px;
+  color: var(--accent);
+  text-shadow: 2px 2px 0 var(--marca-sombra);
+}
+.welcome-text {
+  color: var(--ink);
+  font-size: 0.72rem;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
 .welcome-nota { color: var(--ink-dim); font-size: 0.85em; }
 .welcome-novedades {
   text-align: left;
   background: var(--cell);
-  border-radius: 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
   padding: 12px 14px;
   margin-bottom: 20px;
 }
 .welcome-novedades-titulo {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   color: var(--ink-dim);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
-.welcome-novedades ul { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
-.welcome-novedades li { margin-bottom: 6px; }
+.welcome-novedades ul { list-style: none; margin: 0; padding: 0; font-size: 0.68rem; line-height: 1.7; }
+.welcome-novedades li { margin-bottom: 8px; }
 .welcome-novedades li:last-child { margin-bottom: 0; }
 .nov-icono { display: inline-block; width: 1.4em; }
 
@@ -509,20 +567,23 @@ h1 {
   max-width: 440px;
   text-align: center;
   background: var(--board);
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
   padding: 26px 24px;
 }
-.aviso-card h2 { font-size: 1.4rem; margin-bottom: 12px; }
-.aviso-card p { color: var(--ink-dim); line-height: 1.55; margin-bottom: 10px; }
+.aviso-card h2 {
+  font-family: var(--fuente);
+  font-size: 0.9rem; line-height: 1.7; margin-bottom: 14px;
+}
+.aviso-card p { color: var(--ink-dim); font-size: 0.72rem; line-height: 1.7; margin-bottom: 10px; }
 .aviso-card code, .aviso-card pre {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--fuente-texto);
   background: var(--cell);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 2px 6px;
 }
 .aviso-card pre { padding: 10px; margin-bottom: 10px; }
-.aviso-alternativa { font-size: 0.85rem; }
+.aviso-alternativa { font-size: 0.65rem; }
 
 /* ---- Toast de feedback (#status · role="status") ----
    Vive como hijo de <main class="app">, FUERA de .board-wrap: no añade
@@ -534,14 +595,15 @@ h1 {
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);   /* centrado fijo: no se anima */
-  max-width: min(92vw, 420px);
-  padding: 11px 18px;
+  max-width: min(92vw, 480px);
+  padding: 12px 16px;
   background: var(--bg-2);
   color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
-  font-size: 0.9rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 4px 4px 0 var(--sombra-dura);
+  font-size: 0.7rem;
+  line-height: 1.7;
   text-align: center;
   opacity: 1;
   transition: opacity 0.18s ease;

@@ -4,7 +4,7 @@
 //  Script CLÁSICO (sin import/export): los service workers no
 //  admiten módulos ES de forma fiable en todos los navegadores.
 //
-//  Versión de caché A MANO: la clave es "2048-v1" y solo se cambia
+//  Versión de caché A MANO: la clave es "2048-v2" y solo se cambia
 //  incrementándola. La URL del fichero DEBE seguir siendo ./sw.js
 //  siempre (renombrarlo rompería las actualizaciones del SW); al
 //  modificar cualquier fichero precacheado, sube la versión para
@@ -34,7 +34,7 @@
 //    "Bypass for network".
 // ============================================================
 
-const CACHE = "2048-v1";
+const CACHE = "2048-v2";
 
 // Rutas RELATIVAS siempre (una ruta absoluta "/x" rompería el
 // despliegue en subcarpeta). Instalación ATÓMICA: es equivalente a

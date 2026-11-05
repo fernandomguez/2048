@@ -43,8 +43,8 @@ describe("manifest.json", () => {
     expect(manifest.start_url).toBe("./");
     expect(manifest.scope).toBe("./");
     expect(manifest.display).toBe("standalone");
-    expect(manifest.background_color).toBe("#14171c");
-    expect(manifest.theme_color).toBe("#14171c");
+    expect(manifest.background_color).toBe("#131722");
+    expect(manifest.theme_color).toBe("#131722");
     expect(manifest.prefer_related_applications).not.toBe(true);
 
     // Nada de rutas absolutas: rompería el despliegue en subcarpeta (A3).
@@ -84,7 +84,7 @@ describe("index.html: manifest, iconos y metadatos en el head", () => {
   });
 
   it("declara theme-color y los og con URL absoluta de GitHub Pages (D1)", () => {
-    expect(html).toContain('<meta name="theme-color" content="#14171c">');
+    expect(html).toContain('<meta name="theme-color" content="#131722">');
     expect(html).toContain('property="og:url"');
     expect(html).toContain('<meta property="og:image" content="https://fernandomguez.github.io/2048/icons/og-image-1200x630.png">');
     expect(html).toContain('<meta property="og:image:width" content="1200">');
@@ -131,8 +131,8 @@ describe("icons/", () => {
 describe("sw.js", () => {
   const fuente = leer("sw.js");
 
-  it("versión 2048-v1, waitUntil, addAll y clients.claim; SIN skipWaiting ni reload", () => {
-    expect(fuente).toContain('const CACHE = "2048-v1"');
+  it("versión 2048-v2, waitUntil, addAll y clients.claim; SIN skipWaiting ni reload", () => {
+    expect(fuente).toContain('const CACHE = "2048-v2"');
     expect(fuente).toContain("event.waitUntil");
     expect(fuente).toContain("caches.addAll");
     expect(fuente).toContain("clients.claim()");

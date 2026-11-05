@@ -110,8 +110,8 @@ Para más detalle sobre decisiones de diseño y convenciones, consulta
 ## Privacidad
 
 El juego no usa analítica ni envía datos a ningún servidor. Todo se guarda en
-tu navegador (`localStorage`). La única petición externa es la fuente
-*Space Grotesk* de Google Fonts.
+tu navegador (`localStorage`). Las únicas peticiones externas son las fuentes
+*Press Start 2P* y *Silkscreen* de Google Fonts (tema pixel: display y texto).
 
 ## Licencia
 
