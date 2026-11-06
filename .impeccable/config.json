@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "space grotesk",
+        "createdAt": "2026-11-06T06:43:43.560Z",
+        "reason": "user confirmed: el usuario pidió explícitamente Space Grotesk como tipografía de la interfaz"
+      }
+    ]
+  }
+}

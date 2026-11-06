@@ -28,9 +28,9 @@
      números de ficha, no tiene minúsculas); Silkscreen para todo el
      texto de la interfaz, mucho más legible en cuerpo y tamaño pequeño. */
   --fuente: "Press Start 2P", system-ui, sans-serif;
-  /* Texto de la interfaz: fuente legible del sistema (sin descarga). El pixel
+  /* Texto de la interfaz: Space Grotesk (Google Fonts) con respaldo del sistema. El pixel
      queda SOLO para el logo y el tablero. */
-  --fuente-texto: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fuente-texto: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Tema claro si lo pide el SISTEMA y el usuario no ha forzado nada */
@@ -295,6 +295,24 @@ h1 {
   gap: 7px;
 }
 .fx-toggle[aria-checked="false"] { opacity: 0.6; }
+/* Silenciado: sin ondas y con una cruz sobre el altavoz. */
+.fx-toggle .mudo { display: none; }
+.fx-toggle[aria-checked="false"] .ondas { display: none; }
+.fx-toggle[aria-checked="false"] .mudo { display: inline; }
+
+/* Fila de ajustes (tema, sonido, info): iconos cuadrados iguales, alineados
+   a la izquierda sobre los controles de juego. */
+.ajustes {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ajustes .icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  justify-content: center;
+}
 
 /* ---- Tablero ---- */
 .board-wrap { position: relative; }

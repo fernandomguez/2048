@@ -32,7 +32,7 @@
   <meta name="twitter:image" content="https://fernandomguez.github.io/2048/icons/og-image-1200x630.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -51,11 +51,27 @@
           <span class="score-value" id="best">0</span>
           
         </div>
-        <button class="btn ghost icon-btn theme-toggle" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema claro/oscuro">
-  <span id="theme-icon">🌙</span>
-</button>
       </div>
     </header>
+
+    <!-- Ajustes: tema, sonido e info, como iconos sueltos sobre los controles de juego -->
+    <div class="ajustes">
+      <button class="btn ghost icon-btn theme-toggle" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema claro/oscuro">
+        <span id="theme-icon">🌙</span>
+</button>
+      <!-- Interruptor de feedback (sonido + háptica): role="switch" con
+           aria-checked inicializado por game.js desde stats2048.fxActivo
+           (ON por defecto). El estado solo se ESCRIBE al pulsarlo. -->
+      <button class="btn ghost icon-btn fx-toggle" id="fx-toggle" role="switch" aria-checked="true"
+              aria-label="Sonido y vibración" title="Activar o desactivar el sonido y la vibración">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 5 6 9H3v6h3l5 4z"/>
+          <path class="ondas" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>
+          <path class="mudo" d="m16 9 5 6m0-6-5 6"/>
+        </svg>
+      </button>
+      <button class="btn ghost icon-btn" id="info" aria-label="Información" title="Cómo se juega"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><path d="M12 7.2v.1"/></svg></button>
+    </div>
 
     <div class="actions">
       <button class="btn" id="new-game">Nueva partida</button>
@@ -77,15 +93,7 @@
         <span class="count" id="bomb-count">1</span>
       </button>
 
-      <!-- Interruptor de feedback (sonido + háptica): role="switch" con
-           aria-checked inicializado por game.js desde stats2048.fxActivo
-           (ON por defecto). El estado solo se ESCRIBE al pulsarlo. -->
-      <button class="btn ghost fx-toggle" id="fx-toggle" role="switch" aria-checked="true"
-              title="Activar o desactivar el sonido y la vibración">
-        <span aria-hidden="true">🔊</span> Sonido
-      </button>
 
-      <button class="btn ghost icon-btn" id="info" aria-label="Información" title="Cómo se juega">i</button>
     </div>
 
     </div>

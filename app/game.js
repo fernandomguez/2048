@@ -1237,7 +1237,11 @@ document.getElementById("welcome-close").addEventListener("click", cerrarBienven
 function abrirInfo() {
   if (!welcomeEl.hidden) return;
   welcomeEl.hidden = false;
-  document.getElementById("welcome-close").focus(); // el foco entra en el diálogo
+  // preventScroll: si no, enfocar el botón de abajo hace que la tarjeta se abra
+  // desplazada al final. Debe empezar arriba.
+  document.getElementById("welcome-close").focus({ preventScroll: true });
+  const tarjeta = welcomeEl.querySelector(".welcome-card");
+  if (tarjeta) tarjeta.scrollTop = 0;
 }
 document.getElementById("info").addEventListener("click", abrirInfo);
 
