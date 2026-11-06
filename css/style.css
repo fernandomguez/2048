@@ -28,7 +28,9 @@
      números de ficha, no tiene minúsculas); Silkscreen para todo el
      texto de la interfaz, mucho más legible en cuerpo y tamaño pequeño. */
   --fuente: "Press Start 2P", system-ui, sans-serif;
-  --fuente-texto: "Silkscreen", system-ui, sans-serif;
+  /* Texto de la interfaz: fuente legible del sistema (sin descarga). El pixel
+     queda SOLO para el logo y el tablero. */
+  --fuente-texto: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Tema claro si lo pide el SISTEMA y el usuario no ha forzado nada */
@@ -127,15 +129,16 @@ h1 {
 }
 
 .score-label {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--ink-dim);
 }
 
 .score-value {
-  font-size: 1.1rem;
-  font-weight: 400;
+  font-size: 1.2rem;
+  font-weight: 700;
   margin-top: 6px;
 }
 
@@ -143,7 +146,7 @@ h1 {
    para que siga cabiendo al lado. */
 @media (max-width: 360px) {
   .score-box { min-width: 70px; padding: 7px 8px; }
-  .score-value { font-size: 0.9rem; }
+  .score-value { font-size: 1rem; }
   .panel { gap: 6px; }
 }
 
@@ -161,8 +164,8 @@ h1 {
    logo y fichas. */
 .btn {
   font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 400;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: var(--accent-ink);
   background: var(--accent);
   border: none;
@@ -210,7 +213,7 @@ h1 {
   justify-content: center;
   padding: 10px 8px;
   gap: 7px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   white-space: nowrap;
 }
 .actions-bottom .icon-btn svg { flex: none; }
@@ -225,7 +228,7 @@ h1 {
   padding: 10px 13px;
 }
 .icon-btn svg { display: block; }
-.icon-btn .count { font-size: 0.8rem; font-weight: 400; min-width: 1ch; text-align: center; }
+.icon-btn .count { font-size: 0.9rem; font-weight: 700; min-width: 1ch; text-align: center; }
 .icon-btn.armed { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .icon-btn.theme-toggle { padding: 10px 11px; }
 
@@ -251,7 +254,7 @@ h1 {
 }
 #replay-panel[hidden] { display: none; }
 #replay-panel label {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--ink-dim);
@@ -261,8 +264,8 @@ h1 {
   width: 100%;
   resize: vertical;
   font-family: var(--fuente-texto);
-  font-size: 0.75rem;
-  line-height: 1.8;
+  font-size: 0.85rem;
+  line-height: 1.6;
   color: var(--ink);
   background: var(--cell);
   border: 2px solid var(--line);
@@ -422,6 +425,24 @@ h1 {
    de style.css de abajo lo refuerza). */
 .fx-flotante.fx-reducido { animation-name: flotante-desvanece; }
 
+/* ---- Explosión de la bomba: la ficha se encoge girando y un anillo se expande ---- */
+@keyframes bomba-ficha {
+  0%   { transform: scale(1) rotate(0); opacity: 1; filter: brightness(1.6); }
+  100% { transform: scale(0.1) rotate(120deg); opacity: 0; }
+}
+@keyframes bomba-anillo {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2); opacity: 0; }
+}
+.cell.fx-bomba-ficha { animation: bomba-ficha 0.35s ease-in forwards; }
+.fx-bomba-anillo {
+  position: absolute;
+  pointer-events: none;
+  border: 4px solid var(--accent);
+  border-radius: 50%;
+  animation: bomba-anillo 0.45s ease-out forwards;
+}
+
 /* ---- Modo bomba ---- */
 .board.modo-bomba { outline: 2px solid var(--accent); outline-offset: 4px; }
 .board.modo-bomba .cell { cursor: crosshair; }
@@ -440,13 +461,12 @@ h1 {
 
 .overlay-card { text-align: center; padding: 24px; }
 .overlay-title {
-  font-family: var(--fuente);
-  font-size: 1.25rem;
-  font-weight: 400;
+  font-size: 1.5rem;
+  font-weight: 800;
   margin-bottom: 14px;
   line-height: 1.6;
 }
-.overlay-text { color: var(--ink); font-size: 0.8rem; line-height: 1.7; margin-bottom: 18px; }
+.overlay-text { color: var(--ink); font-size: 0.95rem; line-height: 1.7; margin-bottom: 18px; }
 .overlay-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 /* ---- Bienvenida ---- */
@@ -467,9 +487,8 @@ h1 {
 }
 .welcome-overlay.cerrando .welcome-card { animation: popOut 0.18s ease-in forwards; }
 .welcome-title {
-  font-family: var(--fuente);
-  font-size: 1rem;
-  font-weight: 400;
+  font-size: 1.3rem;
+  font-weight: 800;
   line-height: 1.7;
   margin-bottom: 16px;
   color: var(--accent);
@@ -477,8 +496,8 @@ h1 {
 }
 .welcome-text {
   color: var(--ink);
-  font-size: 0.72rem;
-  line-height: 1.7;
+  font-size: 0.9rem;
+  line-height: 1.6;
   margin-bottom: 16px;
 }
 .welcome-nota { color: var(--ink-dim); font-size: 0.85em; }
@@ -491,13 +510,14 @@ h1 {
   margin-bottom: 20px;
 }
 .welcome-novedades-titulo {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--ink-dim);
   margin-bottom: 10px;
 }
-.welcome-novedades ul { list-style: none; margin: 0; padding: 0; font-size: 0.68rem; line-height: 1.7; }
+.welcome-novedades ul { list-style: none; margin: 0; padding: 0; font-size: 0.85rem; line-height: 1.55; }
 .welcome-novedades li { margin-bottom: 8px; }
 .welcome-novedades li:last-child { margin-bottom: 0; }
 .nov-icono { display: inline-block; width: 1.4em; }
@@ -572,10 +592,9 @@ h1 {
   padding: 26px 24px;
 }
 .aviso-card h2 {
-  font-family: var(--fuente);
-  font-size: 0.9rem; line-height: 1.7; margin-bottom: 14px;
+  font-size: 1.1rem; font-weight: 800; line-height: 1.5; margin-bottom: 14px;
 }
-.aviso-card p { color: var(--ink-dim); font-size: 0.72rem; line-height: 1.7; margin-bottom: 10px; }
+.aviso-card p { color: var(--ink-dim); font-size: 0.9rem; line-height: 1.6; margin-bottom: 10px; }
 .aviso-card code, .aviso-card pre {
   font-family: var(--fuente-texto);
   background: var(--cell);
@@ -583,7 +602,7 @@ h1 {
   padding: 2px 6px;
 }
 .aviso-card pre { padding: 10px; margin-bottom: 10px; }
-.aviso-alternativa { font-size: 0.65rem; }
+.aviso-alternativa { font-size: 0.8rem; }
 
 /* ---- Toast de feedback (#status · role="status") ----
    Vive como hijo de <main class="app">, FUERA de .board-wrap: no añade
@@ -602,8 +621,8 @@ h1 {
   border: 2px solid var(--line);
   border-radius: var(--radius);
   box-shadow: 4px 4px 0 var(--sombra-dura);
-  font-size: 0.7rem;
-  line-height: 1.7;
+  font-size: 0.85rem;
+  line-height: 1.5;
   text-align: center;
   opacity: 1;
   transition: opacity 0.18s ease;

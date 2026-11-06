@@ -239,7 +239,11 @@ describe("mediciones sobre #board.children con FX vivos", () => {
     expect(textosCeldas()).toEqual(["2"]);
     expect(tablero().children).toHaveLength(16);
     expect(contador("bomb-count")).toBe("0");
-    expect(capa().children).toHaveLength(0);
+    // Solo queda la explosión de la bomba (ficha fantasma + anillo), en la capa.
+    expect(capa().children).toHaveLength(2);
+    expect(capa().querySelector(".fx-bomba-ficha").textContent).toBe("4");
+    expect(capa().querySelector(".fx-bomba-anillo")).not.toBeNull();
+    expect(tablero().querySelectorAll('[class*="fx-"]')).toHaveLength(0);
   });
 });
 

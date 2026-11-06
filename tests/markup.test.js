@@ -28,10 +28,10 @@ function textosCeldas() {
 }
 
 describe("index.html real + game.js", () => {
-  it("arranca: bienvenida visible, tablero con 2 fichas y contadores inicializados", () => {
+  it("arranca: sin popup de info, tablero con 2 fichas y contadores inicializados", () => {
     expect(typeof juego.mover).toBe("function");
     expect(typeof juego.deshacer).toBe("function");
-    expect(document.getElementById("welcome").hidden).toBe(false);
+    expect(document.getElementById("welcome").hidden).toBe(true);
     expect(document.getElementById("overlay").hidden).toBe(true);
     expect(textosCeldas()).toEqual(["2", "2"]);
     expect(document.getElementById("score").textContent).toBe("0");
@@ -39,7 +39,9 @@ describe("index.html real + game.js", () => {
     expect(document.getElementById("bomb-count").textContent).toBe("1");
   });
 
-  it("con la bienvenida visible, el teclado no mueve (bug P1 contra markup real)", () => {
+  it("con la info abierta (botón i), el teclado no mueve (bug P1 contra markup real)", () => {
+    document.getElementById("info").click();
+    expect(document.getElementById("welcome").hidden).toBe(false);
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", cancelable: true, bubbles: true }));
     expect(textosCeldas()).toEqual(["2", "2"]);
     expect(document.getElementById("score").textContent).toBe("0");

@@ -140,6 +140,13 @@ Total: **239 tests en 15 ficheros** (`npm test` debe dar todo en verde).
   detecta `location.protocol === "file:"` con un script *clásico* (sí se ejecuta
   en `file://`) y muestra el aviso `#aviso-file` con las instrucciones. No quitar
   ese aviso: sin él la página queda muerta en silencio.
+- **Info (antes "bienvenida")**: `#welcome` NO se muestra al cargar (en móvil
+  bloqueaba el juego); se abre con el botón `#info` ("i", en `.actions`).
+  El `touchmove` global hace `preventDefault()` salvo dentro de `.welcome-card`
+  (necesita scroll propio). Tipografía: Press Start 2P SOLO en logo, fichas y
+  `+N`; el resto usa la fuente del sistema (`--fuente-texto`).
+- **Bomba**: `pintarExplosion()` (`app/game-fx.js`) pinta ficha fantasma + anillo
+  en `#fx-layer` (nunca en `#board`); sin layout o con reduced-motion no pinta.
 - **Modal centralizado**: `hayModalAbierto()` (en `app/game.js`) es el único punto que
   decide si la entrada está bloqueada; la consultan `mover()` (teclado y swipe) y
   `toggleBomba()`. No repetir esta lógica en cada listener. **Única excepción

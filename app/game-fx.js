@@ -16,7 +16,8 @@ const DURACION_SLIDE_MS = 120;          // transición transform del slide
 const DURACION_POP_MS = 180;            // keyframes de la fusión (delay = slide)
 const DURACION_FANTASMA_MS = DURACION_SLIDE_MS + 20; // fantasma hasta el fin del slide
 const DURACION_CLASE_POP_MS = DURACION_SLIDE_MS + DURACION_POP_MS + 60;
-const DURACION_FLOTANTE_MS = 700;       // subida + desvanecimiento del +N
+const DURACION_BOMBA_MS = 450;          // explosión de la bomba
+const DURACION_FLOTANTE_MS = 700;      // subida + desvanecimiento del +N
 
 // Capa inyectada por game.js (el id lo lee game.js con literal para que
 // markup.test.js lo valide contra index.html y el fixture lo declare).
@@ -225,6 +226,35 @@ export function pintarFlotantes(fusiones) {
 
     capa.appendChild(nodo);
     programar(() => nodo.remove(), DURACION_FLOTANTE_MS);
+  }
+}
+
+// EXPLOSIÓN DE BOMBA: un fantasma de la ficha eliminada que se encoge y gira
+// y un anillo que se expande, ambos en #fx-layer (nunca dentro de #board).
+// Se retiran con setTimeout. Con prefers-reduced-motion no se pinta nada.
+export function pintarExplosion(posicion, valor) {
+  if (!capa || !valor || movimientoReducido()) return;
+  const celda = celdasTablero()[posicion[0] * TAMANO + posicion[1]];
+  if (!celda) return;
+  const rect = celda.getBoundingClientRect();
+  if (rect.width === 0) return; // sin layout (jsdom): sin efecto
+  const rectCapa = capa.getBoundingClientRect();
+  const left = rect.left - rectCapa.left;
+  const top = rect.top - rectCapa.top;
+
+  const fantasma = document.createElement("div");
+  fantasma.className = "cell fx-fantasma fx-bomba-ficha len" + String(valor).length;
+  fantasma.dataset.value = valor;
+  fantasma.textContent = valor;
+  const anillo = document.createElement("div");
+  anillo.className = "fx-bomba-anillo";
+  for (const nodo of [fantasma, anillo]) {
+    nodo.style.left = left + "px";
+    nodo.style.top = top + "px";
+    nodo.style.width = rect.width + "px";
+    nodo.style.height = rect.height + "px";
+    capa.appendChild(nodo);
+    programar(() => nodo.remove(), DURACION_BOMBA_MS);
   }
 }
 

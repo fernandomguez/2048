@@ -53,8 +53,8 @@ describe("arranque con partida guardada (Task 8)", () => {
     expect(localStorage.getItem("stats2048")).toBeNull();
   });
 
-  it("la bienvenida sigue visible al arrancar (decisión 7): sin diálogo nuevo", () => {
-    expect(document.getElementById("welcome").hidden).toBe(false);
+  it("la info NO aparece sola al arrancar (se abre con #info): sin diálogo nuevo", () => {
+    expect(document.getElementById("welcome").hidden).toBe(true);
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(2);
   });
 

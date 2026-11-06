@@ -29,6 +29,7 @@ import {
   configurarFx,
   animarMovimiento,
   pintarFlotantes,
+  pintarExplosion,
   limpiarFx,
   sonarMovimiento,
   avisarFusion,
@@ -452,6 +453,7 @@ boardEl.addEventListener("click", (evento) => {
     actualizarBotonBomba();
     return;
   }
+  const valorEliminado = board[fila][col];
   board[fila][col] = 0;
   bombasRestantes--;
   // Replay (2d, I1): la bomba muta el tablero sin RNG ni movimiento, así que
@@ -461,6 +463,7 @@ boardEl.addEventListener("click", (evento) => {
   boardEl.classList.remove("modo-bomba");
   ultimaFichaNueva = null;
   render();
+  pintarExplosion([fila, col], valorEliminado); // animación de la bomba
   actualizarBotonBomba();
   guardarPartida(); // la bomba gasta un recurso: también cambia la partida
 });
@@ -967,6 +970,9 @@ document.addEventListener("touchend", (evento) => {
 // Bloquea el scroll del navegador durante cualquier arrastre táctil.
 // passive:false es OBLIGATORIO aquí; sin él, preventDefault se ignora.
 document.addEventListener("touchmove", (evento) => {
+  // La tarjeta de info necesita scroll propio en móvil (si no, el botón
+  // "Entendido" queda inalcanzable).
+  if (evento.target.closest && evento.target.closest(".welcome-card")) return;
   evento.preventDefault();
 }, { passive: false });
 
@@ -1226,8 +1232,14 @@ function cerrarBienvenida() {
 
 document.getElementById("welcome-close").addEventListener("click", cerrarBienvenida);
 
-welcomeEl.hidden = false; // se muestra al arrancar el script (cada carga)
-document.getElementById("welcome-close").focus(); // el foco entra en el diálogo
+// La info ya NO aparece sola al cargar (bloqueaba el juego en móvil): se abre
+// con el botón "i" de la cabecera.
+function abrirInfo() {
+  if (!welcomeEl.hidden) return;
+  welcomeEl.hidden = false;
+  document.getElementById("welcome-close").focus(); // el foco entra en el diálogo
+}
+document.getElementById("info").addEventListener("click", abrirInfo);
 
 // Nota: mover/deshacer/toggleBomba/nuevaPartida/mostrarVictoria/mostrarGameOver
 // se exportan como API del módulo para que los tests de flujo conduzcan la UI.

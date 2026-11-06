@@ -31,6 +31,7 @@ if (typeof document !== "undefined") {
         <button class="btn ghost fx-toggle" id="fx-toggle" role="switch" aria-checked="true">
           <span aria-hidden="true">🔊</span> Sonido
         </button>
+        <button class="btn ghost icon-btn" id="info">i</button>
       </div>
       <div class="board-wrap">
         <div id="board" class="board" tabindex="-1"></div>
